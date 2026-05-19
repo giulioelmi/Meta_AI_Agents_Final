@@ -7,7 +7,9 @@ import argparse
 sys.path.insert(0, os.path.dirname(__file__))
 
 from dotenv import load_dotenv
+
 load_dotenv()
+
 from tools.report_output import write_report_pdf
 
 STEP_NAMES = [
@@ -70,7 +72,7 @@ def build_params(args: argparse.Namespace) -> dict:
 
 def fmt_disruption(dtype: str, params: dict) -> str:
     if dtype == "demand_spike":
-        return f"Demand Spike  ×{params.get('multiplier', 1.2):.1f}"
+        return f"Demand Spike x{params.get('multiplier', 1.2):.1f}"
     if dtype == "driver_shortage":
         return f"Driver Shortage  {int(params.get('shortage_pct', 0.3) * 100)}% unavailable"
     if dtype == "warehouse_closure":
@@ -86,9 +88,9 @@ def print_summary(final: dict, disruption_type: str, total_elapsed: float) -> No
     verdict  = final.get("audit_verdict", "unknown")
     retries  = final.get("audit_retries", 0)
 
-    print("\n" + "─" * 50)
+    print("\n" + "-" * 50)
     print("Results")
-    print("─" * 50)
+    print("-" * 50)
 
     if baseline and scenario:
         b_on  = baseline.get("on_time_rate_pct", 0)
@@ -101,13 +103,13 @@ def print_summary(final: dict, disruption_type: str, total_elapsed: float) -> No
         def arrow(delta: float, lower_better: bool = False) -> str:
             up   = delta > 0
             good = up if not lower_better else not up
-            sym  = "▲" if up else "▼"
+            sym  = "up" if up else "down"
             sign = "+" if delta > 0 else ""
             return f"{sym} {sign}{delta:.1f}%  {'OK' if good else '!!'}"
 
-        print(f"  On-time rate:     {b_on:.1f}% → {s_on:.1f}%   {arrow(s_on - b_on)}")
-        print(f"  Cold chain breach:{b_br:.1f}% → {s_br:.1f}%   {arrow(s_br - b_br, lower_better=True)}")
-        print(f"  At-risk shipments:{b_rk}  → {s_rk}")
+        print(f"  On-time rate:     {b_on:.1f}% -> {s_on:.1f}%   {arrow(s_on - b_on)}")
+        print(f"  Cold chain breach:{b_br:.1f}% -> {s_br:.1f}%   {arrow(s_br - b_br, lower_better=True)}")
+        print(f"  At-risk shipments:{b_rk} -> {s_rk}")
 
     audit_str = "PASSED" if verdict == "pass" else f"MAX RETRIES ({retries})"
     print(f"\n  Audit:   {audit_str} after {retries} revision(s)")
@@ -131,12 +133,6 @@ def main() -> None:
         print("  cp .env.example .env")
         print("  # then add OPENAI_API_KEY=your_key_here")
         raise SystemExit(1)
-
-    try:
-        from tracing import init_langsmith_tracing
-        init_langsmith_tracing()
-    except Exception:
-        pass
 
     from graph import build_graph
 
@@ -173,7 +169,7 @@ def main() -> None:
                 final.update(state_update)
 
                 if node_name not in step_n:
-                    continue  # email or internal nodes
+                    continue
 
                 elapsed = time.time() - t_step
                 t_step  = time.time()

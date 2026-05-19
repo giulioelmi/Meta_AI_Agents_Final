@@ -1,10 +1,11 @@
-wha# secrets
+# secrets
 .env
 
 # python
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # local stores
 chroma_db/
@@ -16,4 +17,6 @@ chroma_db/
 
 # logs
 *.log
-.env
+
+# generated reports
+dispatch_report_*.pdf

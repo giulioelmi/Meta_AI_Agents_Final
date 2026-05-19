@@ -1,138 +1,70 @@
 # MSBA AI Agents Demo
 
-This project is a LangGraph + LangChain multi-agent demo for specialty medicine dispatch planning.
-
-The app:
-- reads business rules and KPI definitions from the dispatch playbook PDF
-- analyzes shipment data from the CSV file
-- checks route weather risk
-- runs disruption simulations
-- generates an executive PDF report
+This project implements a command-line LangGraph pipeline for the UCLA MSBA AI Agents Project Challenge. It turns the SeeWeeS specialty medicine dispatch prototype into a multi-agent workflow with PDF-grounded business rules, shipment KPI analysis, weather risk, what-if simulation, stakeholder review, a planner, and an audit loop before report generation.
 
 ## Project Structure
 
 ```text
 data/                  Input PDF and CSV files
-src/                   Application code
-src/main.py            Main entry point
-chroma_db/             Local vector database cache
+src/main.py            CLI entry point
+src/graph.py           LangGraph workflow
+src/agents.py          LLM agent wrappers
+src/prompts*.py        Agent prompt templates
+src/nodes/             What-if, stakeholder, and audit nodes
+src/tools/             PDF, CSV, KPI, weather, and report helpers
+tests/                 Unit tests for deterministic logic
 requirements.txt       Python dependencies
-.env.example           Example environment variables
-.env                   Local secrets file, not committed
+.env.example           Environment variable template
 ```
+
+Generated files such as `dispatch_report_*.pdf`, `chroma_db/`, `__pycache__/`, and `.pytest_cache/` are intentionally ignored.
 
 ## Requirements
 
-Use Python 3.11 or newer. Python 3.13 also works.
+Use Python 3.11 or newer. The app requires:
 
-You also need:
 - an OpenAI API key
-- internet access while running the app
-
-The app calls external APIs for OpenAI embeddings, LLM responses, and weather data. If your network blocks those calls, the app may fail during the `PDF Context` or `Weather Risk` step.
+- internet access for OpenAI and Open-Meteo API calls
 
 ## Setup
-
-From the project folder:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-```
-
-If you are on Windows, use:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-## Environment Variables
-
-Create a local `.env` file:
-
-```bash
 cp .env.example .env
 ```
 
-Then open `.env` and set:
+Edit `.env` and set:
 
 ```text
 OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
-The email and LangSmith variables in `.env.example` are optional unless you want to use those integrations.
-
 ## Run
-
-Make sure the virtual environment is activated, then run:
 
 ```bash
 python src/main.py --disruption demand_spike
 ```
 
-Other supported disruption scenarios:
+Supported scenarios:
 
 ```bash
+python src/main.py --disruption demand_spike --multiplier 1.3
 python src/main.py --disruption driver_shortage --shortage-pct 30
 python src/main.py --disruption warehouse_closure --location Boston-MGH
 python src/main.py --disruption weather_event --risk-score 2
 ```
 
-The app prints progress for each pipeline step and writes a PDF report into the folder where you launched the command.
+The command prints each pipeline step and writes `dispatch_report_YYYYMMDD_HHMMSS.pdf` to the project folder.
 
-Example output:
-
-```text
-SeeWeeS Ops Intelligence
-==================================================
-  Demand Spike  x1.2
-
-  [1/8] PDF Context             done
-  [2/8] CSV Analysis            done
-  ...
-  Report: /path/to/project/dispatch_report_YYYYMMDD_HHMMSS.pdf
-```
-
-## Common Issues
-
-### `zsh: command not found: python`
-
-On some Macs, the command is `python3`, not `python`.
-
-Use this for setup:
+## Test
 
 ```bash
-python3 -m venv .venv
+PYTHONPATH=src pytest
 ```
 
-After activating the virtual environment, `python` should work.
+## Notes
 
-```
-
-### `Error: Missing OpenAI credentials`
-
-The app did not find `OPENAI_API_KEY`.
-
-Check that `.env` exists and contains:
-
-```text
-OPENAI_API_KEY="your_openai_api_key_here"
-```
-
-### `openai.APIConnectionError: Connection error`
-
-The app could not reach the OpenAI API. Check that:
-- you are connected to the internet
-- your API key is valid
-- your network, VPN, firewall, or classroom Wi-Fi is not blocking external API calls
-
-## Notes for Sharing
-
-Do not share your `.env` file or OpenAI API key.
-
-If you share the project with classmates, they should create their own `.env` file and use their own API key.
+Do not commit `.env` or API keys. The PDF vector index in `chroma_db/` is a local cache and can be rebuilt by rerunning the app.

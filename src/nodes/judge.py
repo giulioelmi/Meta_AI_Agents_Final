@@ -17,6 +17,7 @@ def node_judge(state: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "audit_verdict": result["verdict"],
         "audit_violations": result.get("violations", []),
+        "audit_required_fixes": result.get("required_fixes", []),
         "audit_retries": retries,
     }
 
@@ -25,7 +26,7 @@ def node_revise(state: Dict[str, Any]) -> Dict[str, Any]:
     revised = run_revise_agent(
         dispatch_plan=state.get("dispatch_plan", ""),
         violations=state.get("audit_violations", []),
-        required_fixes=[],
+        required_fixes=state.get("audit_required_fixes", []),
         stakeholder_synthesis=state.get("stakeholder_synthesis", ""),
     )
     return {"dispatch_plan": revised}

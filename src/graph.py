@@ -46,6 +46,7 @@ class AppState(TypedDict, total=False):
     dispatch_plan: str
     audit_verdict: str              # "pass" | "fail"
     audit_violations: List[str]
+    audit_required_fixes: List[str]
     audit_retries: int
 
     report_text: str
@@ -120,7 +121,6 @@ def _parse_waypoints_from_text(text: str) -> List[Dict[str, Any]]:
 def node_weather(state: AppState) -> AppState:
     tz = os.getenv("WEATHER_TZ", "America/New_York")
 
-    # Retrieve waypoint table from the PDF using PdfRag
     rag = PdfRag(persist_dir="chroma_db")
     vectordb = rag.build(state["pdf_path"])
     retriever = rag.retriever(vectordb, k=20)
@@ -131,22 +131,13 @@ def node_weather(state: AppState) -> AppState:
     )
     docs = retriever.invoke(wp_query)
     wp_text = "\n".join(d.page_content for d in docs)
-    print("\n===== WAYPOINT RETRIEVAL (RAW) =====")
-    print(wp_text[:1200])
-    print("===================================\n")
     waypoints = _parse_waypoints_from_text(wp_text)
 
-    # Fallback if parsing is weak or incomplete
     if len(waypoints) < 5:
-        print(f"Waypoint extraction failed (found {len(waypoints)}). Falling back to WEATHER_LAT/LON.")
         lat = os.getenv("WEATHER_LAT", "40.7282")
         lon = os.getenv("WEATHER_LON", "-74.0776")
         forecast = get_weather_forecast(lat, lon, tz)
         risk = derive_dispatch_weather_risk(forecast)
-        print("\n===== WEATHER_RISK DEBUG (FALLBACK) =====")
-        print(forecast)
-        print(risk)
-        print("=========================================\n")
         return {"weather_risk": risk}
 
     # Compute per-waypoint risk and roll up to route-level risk (max score)
@@ -181,9 +172,6 @@ def node_weather(state: AppState) -> AppState:
                 "risk_score_0_3": worst.get("risk_score_0_3"),
             }
         )
-    print("\n===== WEATHER_RISK DEBUG =====")
-    print(route_risk)
-    print("================================\n")
     return {"weather_risk": route_risk}
 
 
