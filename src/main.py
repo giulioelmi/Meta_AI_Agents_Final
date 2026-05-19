@@ -124,6 +124,13 @@ def print_summary(final: dict, disruption_type: str, total_elapsed: float) -> No
 def main() -> None:
     args   = parse_args()
     params = build_params(args)
+    if not os.getenv("OPENAI_API_KEY"):
+        print("\nError: Missing OpenAI credentials.")
+        print("Set OPENAI_API_KEY in your shell or in .env before running.")
+        print("Example:")
+        print("  cp .env.example .env")
+        print("  # then add OPENAI_API_KEY=your_key_here")
+        raise SystemExit(1)
 
     try:
         from tracing import init_langsmith_tracing
