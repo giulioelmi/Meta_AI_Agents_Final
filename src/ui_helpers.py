@@ -83,3 +83,344 @@ div[data-testid="stButton"] > button:hover {
 hr { border-color: #1d1d1f !important; margin: 0 !important; }
 </style>
 """
+
+# ── Rendering helpers ──────────────────────────────────────────────────────────
+
+def _card(content: str) -> str:
+    return (
+        '<div style="background:#111;border:1px solid #1d1d1f;border-radius:12px;'
+        f'padding:20px;margin-top:14px">{content}</div>'
+    )
+
+
+def _kpi_grid(items: List[Tuple[str, str, str]]) -> str:
+    """items: (label, value, hex_color). Returns a flex row of KPI pills."""
+    pills = "".join(
+        f'<div style="flex:1;min-width:90px;background:#1a1a1c;border-radius:10px;'
+        f'padding:14px 12px;text-align:center">'
+        f'<div style="font-size:11px;color:#6e6e73;margin-bottom:6px">{label}</div>'
+        f'<div style="font-size:20px;font-weight:600;color:{color}">{value}</div>'
+        f'</div>'
+        for label, value, color in items
+    )
+    return f'<div style="display:flex;gap:8px;flex-wrap:wrap">{pills}</div>'
+
+
+def render_pdf_context_panel(state: Dict[str, Any]) -> str:
+    ctx = state.get("business_context", "")
+    lines = [l.strip("•-* ").strip() for l in ctx.splitlines() if l.strip().startswith(("•", "-", "*"))][:6]
+    if lines:
+        pills = "".join(
+            f'<span style="display:inline-block;background:#1c2a1c;color:#30d158;'
+            f'border-radius:6px;padding:4px 10px;font-size:11px;margin:3px">{l[:70]}</span>'
+            for l in lines
+        )
+        body = pills
+    else:
+        preview = ctx[:300].strip() + ("…" if len(ctx) > 300 else "")
+        body = f'<p style="font-size:13px;color:#aeaeb2;line-height:1.6">{preview}</p>'
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Extracted business rules</div>{body}'
+    )
+
+
+def render_csv_analysis_panel(state: Dict[str, Any]) -> str:
+    kpis = state.get("csv_kpis", {})
+    on_time  = kpis.get("on_time_rate_pct", 0)
+    breach   = kpis.get("cold_chain_breach_rate_pct", 0)
+    at_risk  = kpis.get("shipments_at_risk", 0)
+    total    = kpis.get("total_shipments", 0)
+    crit_pct = kpis.get("critical_hospital_on_time_pct", 0)
+
+    grid = _kpi_grid([
+        ("On-time",          f"{on_time:.1f}%",  "#30d158"),
+        ("Cold breach",      f"{breach:.1f}%",   "#ff453a" if breach > 5 else "#30d158"),
+        ("At-risk",          str(at_risk),        "#ff9f0a" if at_risk > 0 else "#30d158"),
+        ("Critical on-time", f"{crit_pct:.1f}%", "#30d158"),
+        ("Total",            str(total),          "#aeaeb2"),
+    ])
+    insights = state.get("ops_insights", "")
+    insight_html = ""
+    if insights:
+        preview = insights[:200].strip() + ("…" if len(insights) > 200 else "")
+        insight_html = (
+            f'<div style="margin-top:14px;font-size:12px;color:#6e6e73;line-height:1.6">'
+            f'{preview}</div>'
+        )
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Baseline KPIs</div>{grid}{insight_html}'
+    )
+
+
+def render_weather_panel(state: Dict[str, Any]) -> str:
+    risk = state.get("weather_risk", {})
+    per_wp = risk.get("per_waypoint", [])
+    route_score = risk.get("route_risk_score_0_3", risk.get("risk_score_0_3", 0))
+    RISK_COLORS  = {0: "#30d158", 1: "#30d158", 2: "#ff9f0a", 3: "#ff453a"}
+    RISK_LABELS  = {0: "Clear",   1: "Low",     2: "Moderate", 3: "High"}
+
+    def score_val(s: Any) -> int:
+        try:
+            return int(s)
+        except (TypeError, ValueError):
+            return 0
+
+    if per_wp:
+        rows = "".join(
+            f'<tr>'
+            f'<td style="padding:7px 10px;color:#aeaeb2;font-size:12px">{w.get("waypoint","")}</td>'
+            f'<td style="padding:7px 10px;color:#f5f5f7;font-size:12px">{w.get("city","")}, {w.get("state","")}</td>'
+            f'<td style="padding:7px 10px;font-size:12px;'
+            f'color:{RISK_COLORS.get(score_val(w.get("risk_score_0_3",0)),"#6e6e73")}">'
+            f'{RISK_LABELS.get(score_val(w.get("risk_score_0_3",0)),"—")}</td>'
+            f'<td style="padding:7px 10px;font-size:12px;color:#6e6e73">'
+            f'{w.get("max_precip_mm_day","—")} mm/d &nbsp;{w.get("max_wind_gust_kmh","—")} km/h gust</td>'
+            f'</tr>'
+            for w in per_wp
+        )
+        table = (
+            f'<table style="width:100%;border-collapse:collapse">'
+            f'<thead><tr>'
+            f'<th style="text-align:left;padding:6px 10px;font-size:11px;color:#48484a;font-weight:500">WP</th>'
+            f'<th style="text-align:left;padding:6px 10px;font-size:11px;color:#48484a;font-weight:500">Location</th>'
+            f'<th style="text-align:left;padding:6px 10px;font-size:11px;color:#48484a;font-weight:500">Risk</th>'
+            f'<th style="text-align:left;padding:6px 10px;font-size:11px;color:#48484a;font-weight:500">Conditions</th>'
+            f'</tr></thead><tbody>{rows}</tbody></table>'
+        )
+    else:
+        sv = score_val(route_score)
+        table = (
+            f'<div style="text-align:center;padding:20px">'
+            f'<div style="font-size:32px;color:{RISK_COLORS.get(sv,"#6e6e73")};font-weight:700">'
+            f'{RISK_LABELS.get(sv,str(route_score))}</div>'
+            f'<div style="font-size:12px;color:#6e6e73;margin-top:6px">Route risk score: {route_score}/3</div>'
+            f'</div>'
+        )
+
+    sv = score_val(route_score)
+    route_label = (
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'I-95 Corridor Waypoints — Route risk: '
+        f'<span style="color:{RISK_COLORS.get(sv, "#6e6e73")}">'
+        f'{RISK_LABELS.get(sv, str(route_score))}</span></div>'
+    )
+    return _card(route_label + table)
+
+
+def render_what_if_panel(state: Dict[str, Any]) -> str:
+    baseline = state.get("csv_kpis", {})
+    scenario = state.get("scenario_kpis", {})
+    summary  = state.get("what_if_summary", "")
+
+    b_ontime = baseline.get("on_time_rate_pct", 0)
+    s_ontime = scenario.get("on_time_rate_pct", 0)
+    b_breach = baseline.get("cold_chain_breach_rate_pct", 0)
+    s_breach = scenario.get("cold_chain_breach_rate_pct", 0)
+    b_risk   = baseline.get("shipments_at_risk", 0)
+    s_risk   = scenario.get("shipments_at_risk", 0)
+
+    def _dc(delta: float, lower_is_better: bool = False) -> str:
+        if lower_is_better:
+            return "#30d158" if delta <= 0 else "#ff453a"
+        return "#30d158" if delta >= 0 else "#ff453a"
+
+    d_on  = s_ontime - b_ontime
+    d_br  = s_breach - b_breach
+    d_rk  = s_risk   - b_risk
+
+    comparison = (
+        f'<div style="display:flex;gap:14px;align-items:stretch">'
+        f'<div style="flex:1;background:#1a1a1c;border-radius:10px;padding:16px">'
+        f'<div style="font-size:11px;color:#6e6e73;margin-bottom:10px;font-weight:500">Baseline</div>'
+        f'<div style="font-size:13px;color:#aeaeb2">On-time: <b style="color:#30d158">{b_ontime:.1f}%</b></div>'
+        f'<div style="font-size:13px;color:#aeaeb2;margin-top:5px">Breach: <b>{b_breach:.1f}%</b></div>'
+        f'<div style="font-size:13px;color:#aeaeb2;margin-top:5px">At-risk: <b>{b_risk}</b></div>'
+        f'</div>'
+        f'<div style="display:flex;align-items:center;font-size:20px;color:#3a3a3c">&#8594;</div>'
+        f'<div style="flex:1;background:#1a1a1c;border-radius:10px;padding:16px">'
+        f'<div style="font-size:11px;color:#6e6e73;margin-bottom:10px;font-weight:500">Scenario</div>'
+        f'<div style="font-size:13px;color:#aeaeb2">On-time: '
+        f'<b style="color:{_dc(d_on)}">{s_ontime:.1f}%</b>'
+        f' <span style="font-size:11px;color:{_dc(d_on)}">({d_on:+.1f}%)</span></div>'
+        f'<div style="font-size:13px;color:#aeaeb2;margin-top:5px">Breach: '
+        f'<b style="color:{_dc(d_br,True)}">{s_breach:.1f}%</b>'
+        f' <span style="font-size:11px;color:{_dc(d_br,True)}">({d_br:+.1f}%)</span></div>'
+        f'<div style="font-size:13px;color:#aeaeb2;margin-top:5px">At-risk: '
+        f'<b style="color:{_dc(d_rk,True)}">{s_risk}</b>'
+        f' <span style="font-size:11px;color:{_dc(d_rk,True)}">({d_rk:+})</span></div>'
+        f'</div>'
+        f'</div>'
+    )
+    summary_html = ""
+    if summary:
+        preview = summary[:240].strip() + ("…" if len(summary) > 240 else "")
+        summary_html = (
+            f'<div style="margin-top:12px;font-size:12px;color:#6e6e73;line-height:1.6">'
+            f'{preview}</div>'
+        )
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Baseline vs Scenario KPIs</div>{comparison}{summary_html}'
+    )
+
+
+# Persona positions in SVG viewBox 400×276
+_PERSONA_XY: Dict[str, Tuple[int, int]] = {
+    "HospitalAdmin":       (200, 28),
+    "CFO":                 (44,  100),
+    "Dispatcher":          (356, 100),
+    "WarehouseManager":    (44,  200),
+    "ComplianceOfficer":   (356, 200),
+    "Driver":              (200, 248),
+}
+_CENTER_XY = (200, 132)
+
+
+def _stakeholder_svg(reactions: Dict[str, str]) -> str:
+    edges = "".join(
+        f'<line x1="{_CENTER_XY[0]}" y1="{_CENTER_XY[1]}" x2="{x}" y2="{y}" '
+        f'stroke="#30d15838" stroke-width="1.5"/>'
+        for x, y in _PERSONA_XY.values()
+    )
+    nodes = ""
+    for name, (x, y) in _PERSONA_XY.items():
+        parts = re.findall(r"[A-Z][a-z]+", name)
+        line1 = parts[0] if parts else name
+        line2 = parts[1] if len(parts) > 1 else ""
+        done   = name in reactions
+        fill   = "#1c3a24" if done else "#1a1a1c"
+        stroke = "#30d158" if done else "#3a3a3c"
+        nodes += (
+            f'<circle cx="{x}" cy="{y}" r="22" fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>'
+            f'<text x="{x}" y="{y - 5}" text-anchor="middle" fill="#f5f5f7" '
+            f'font-size="8" font-family="-apple-system,sans-serif">{line1}</text>'
+            f'<text x="{x}" y="{y + 8}" text-anchor="middle" fill="#aeaeb2" '
+            f'font-size="7" font-family="-apple-system,sans-serif">{line2}</text>'
+        )
+    cx, cy = _CENTER_XY
+    synthesis = (
+        f'<polygon points="{cx},{cy-22} {cx+28},{cy} {cx},{cy+22} {cx-28},{cy}" '
+        f'fill="#1a2a3a" stroke="#0a84ff" stroke-width="1.5"/>'
+        f'<text x="{cx}" y="{cy-3}" text-anchor="middle" fill="#f5f5f7" '
+        f'font-size="8" font-family="-apple-system,sans-serif">Synthesis</text>'
+        f'<text x="{cx}" y="{cy+9}" text-anchor="middle" fill="#6e6e73" '
+        f'font-size="7" font-family="-apple-system,sans-serif">Agent</text>'
+    )
+    return (
+        f'<svg viewBox="0 0 400 276" xmlns="http://www.w3.org/2000/svg" '
+        f'style="width:100%;max-width:420px;display:block;margin:0 auto">'
+        f'{edges}{nodes}{synthesis}</svg>'
+    )
+
+
+def render_stakeholder_panel(state: Dict[str, Any]) -> str:
+    reactions  = state.get("stakeholder_reactions", {})
+    synthesis  = state.get("stakeholder_synthesis", "")
+    svg        = _stakeholder_svg(reactions)
+
+    reaction_items = ""
+    if reactions:
+        items = "".join(
+            f'<div style="margin-bottom:8px">'
+            f'<span style="font-size:11px;color:#30d158;font-weight:500">{name}</span>'
+            f'<div style="font-size:12px;color:#aeaeb2;line-height:1.5;margin-top:2px">'
+            f'{txt[:150]}{"…" if len(txt)>150 else ""}</div></div>'
+            for name, txt in reactions.items()
+        )
+        reaction_items = (
+            f'<div style="margin-top:14px;border-top:1px solid #1d1d1f;padding-top:14px">'
+            f'{items}</div>'
+        )
+    synth_html = ""
+    if synthesis:
+        synth_html = (
+            f'<div style="margin-top:12px;background:#1a1a1c;border-radius:8px;padding:12px">'
+            f'<div style="font-size:11px;color:#0a84ff;margin-bottom:6px;font-weight:500">Synthesis</div>'
+            f'<div style="font-size:12px;color:#aeaeb2;line-height:1.6">'
+            f'{synthesis[:240]}{"…" if len(synthesis)>240 else ""}</div></div>'
+        )
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'6-Persona Reaction Network</div>{svg}{reaction_items}{synth_html}'
+    )
+
+
+def render_planner_panel(state: Dict[str, Any]) -> str:
+    plan  = state.get("dispatch_plan", "")
+    lines = [l.strip() for l in plan.splitlines() if l.strip()][:8]
+    items = "".join(
+        f'<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px">'
+        f'<span style="color:#30d158;font-size:12px;flex-shrink:0;margin-top:2px">&#8250;</span>'
+        f'<span style="font-size:13px;color:#aeaeb2;line-height:1.5">{l[:130]}</span>'
+        f'</div>'
+        for l in lines
+    )
+    if not items:
+        items = '<div style="font-size:12px;color:#48484a">Generating dispatch plan…</div>'
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Dispatch plan summary</div>{items}'
+    )
+
+
+def render_judge_panel(state: Dict[str, Any]) -> str:
+    verdict    = state.get("audit_verdict", "")
+    retries    = state.get("audit_retries", 0)
+    violations = state.get("audit_violations", [])
+
+    if verdict == "pass":
+        verdict_html = (
+            f'<div style="background:#1c3a24;border-radius:10px;padding:14px 18px;'
+            f'display:flex;align-items:center;gap:12px">'
+            f'<span style="font-size:22px;color:#30d158">&#10003;</span>'
+            f'<div><div style="font-size:14px;color:#30d158;font-weight:600">Plan Approved</div>'
+            f'<div style="font-size:12px;color:#6e6e73;margin-top:2px">Passed after {retries} revision(s)</div>'
+            f'</div></div>'
+        )
+    elif verdict == "fail":
+        verdict_html = (
+            f'<div style="background:#2a1a1a;border-radius:10px;padding:14px 18px;'
+            f'display:flex;align-items:center;gap:12px">'
+            f'<span style="font-size:22px;color:#ff453a">&#9888;</span>'
+            f'<div><div style="font-size:14px;color:#ff453a;font-weight:600">Max retries reached</div>'
+            f'<div style="font-size:12px;color:#6e6e73;margin-top:2px">'
+            f'Proceeding with best available plan ({retries} attempt(s))</div>'
+            f'</div></div>'
+        )
+    else:
+        verdict_html = (
+            f'<div style="background:#1a1a1c;border-radius:10px;padding:14px 18px">'
+            f'<div style="font-size:13px;color:#6e6e73">Verifying plan…</div></div>'
+        )
+
+    violation_html = ""
+    if violations:
+        pills = "".join(
+            f'<span style="display:inline-block;background:#2a1a1a;color:#ff9f0a;'
+            f'border-radius:6px;padding:4px 10px;font-size:11px;margin:3px">{v[:80]}</span>'
+            for v in violations
+        )
+        violation_html = f'<div style="margin-top:12px">{pills}</div>'
+
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Audit result</div>{verdict_html}{violation_html}'
+    )
+
+
+def render_report_panel(state: Dict[str, Any]) -> str:
+    report_html = state.get("report_html", "")
+    if not report_html:
+        return _card(
+            '<div style="font-size:12px;color:#48484a">Generating executive report…</div>'
+        )
+    return _card(
+        f'<div style="font-size:12px;color:#6e6e73;margin-bottom:10px;font-weight:500">'
+        f'Executive Report</div>'
+        f'<div style="background:#1a1a1c;border-radius:10px;padding:14px">'
+        f'<div style="font-size:12px;color:#30d158;font-weight:500;margin-bottom:6px">Report generated</div>'
+        f'<div style="font-size:12px;color:#6e6e73">Full executive report rendered below the pipeline.</div>'
+        f'</div>'
+    )
