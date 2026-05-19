@@ -204,9 +204,16 @@ def node_report(state: AppState) -> AppState:
     html = run_report_agent(
         business_context=state.get("business_context", ""),
         kpis=state.get("csv_kpis", {}),
+        scenario_kpis=state.get("scenario_kpis", {}),
+        what_if_summary=state.get("what_if_summary", ""),
         anomaly_highlights=state.get("anomalies_md", "(none)"),
         weather_risk=state.get("weather_risk", {}),
+        stakeholder_reactions=state.get("stakeholder_reactions", {}),
+        stakeholder_synthesis=state.get("stakeholder_synthesis", ""),
         dispatch_plan=state.get("dispatch_plan", ""),
+        audit_verdict=state.get("audit_verdict", "unknown"),
+        audit_retries=state.get("audit_retries", 0),
+        audit_violations=state.get("audit_violations", []),
     )
     return {"report_html": html}
 

@@ -39,16 +39,30 @@ def run_planner_agent(
 def run_report_agent(
     business_context: str,
     kpis: Dict[str, Any],
+    scenario_kpis: Dict[str, Any],
+    what_if_summary: str,
     anomaly_highlights: str,
     weather_risk: Dict[str, Any],
+    stakeholder_reactions: Dict[str, str],
+    stakeholder_synthesis: str,
     dispatch_plan: str,
+    audit_verdict: str,
+    audit_retries: int,
+    audit_violations: list,
 ) -> str:
     return llm.invoke(REPORT_PROMPT.format_messages(
         business_context=business_context,
         kpis=kpis,
+        scenario_kpis=scenario_kpis,
+        what_if_summary=what_if_summary,
         anomaly_highlights=anomaly_highlights,
         weather_risk=weather_risk,
-        dispatch_plan=dispatch_plan
+        stakeholder_reactions=stakeholder_reactions,
+        stakeholder_synthesis=stakeholder_synthesis,
+        dispatch_plan=dispatch_plan,
+        audit_verdict=audit_verdict,
+        audit_retries=audit_retries,
+        audit_violations=audit_violations,
     )).content
 
 

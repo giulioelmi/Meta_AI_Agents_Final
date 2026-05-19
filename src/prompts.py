@@ -49,18 +49,30 @@ PLANNER_PROMPT = ChatPromptTemplate.from_messages([
 
 REPORT_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "You are ReportAgent. Produce a crisp HTML report for leadership. Use headings and bullets. Keep it skimmable.\n\n"
+     "You are ReportAgent. Produce a crisp HTML executive report for C-suite leadership. "
+     "Use headings, tables, and bullets. Highlight risk in red, safe metrics in green using inline CSS.\n\n"
      "WEATHER REPORTING RULES:\n"
-     "- Only report weather metrics that appear in the weather_risk object.\n"
-     "- If per_waypoint exists, include a small HTML table with each waypoint’s risk_score_0_3 and highlight the corridor max "
-     "(route_risk_score_0_3) and the worst_waypoint.\n"
-     "- Otherwise, report the single-location risk_score_0_3, risk_flags, and max_precip_mm_day / max_wind_gust_kmh / min_temp_c if present.\n"
-     "- Do NOT mention snowfall, visibility, or hourly triggers unless those fields are present.\n"),
+     "- Only report weather metrics present in the weather_risk object.\n"
+     "- If per_waypoint exists, include an HTML table per waypoint with risk_score_0_3.\n"
+     "- Do NOT mention snowfall, visibility, or hourly triggers unless those fields are present.\n\n"
+     "REQUIRED STRUCTURE (in this order):\n"
+     "1. Executive Summary (3 bullets: situation, risk, recommendation)\n"
+     "2. Baseline KPIs vs Scenario KPIs (side-by-side HTML table — highlight changes)\n"
+     "3. Weather Risk (waypoint table if per_waypoint available, else single-location summary)\n"
+     "4. Stakeholder Concerns (one line per persona, full synthesis below)\n"
+     "5. Dispatch Plan (the approved or final plan)\n"
+     "6. Audit Result (pass/fail badge, number of revision cycles, any remaining violations)\n"),
     ("user",
-     "Inputs:\n\nBusiness context:\n{business_context}\n\n"
-     "CSV KPIs:\n{kpis}\n\n"
+     "Business context:\n{business_context}\n\n"
+     "Baseline KPIs:\n{kpis}\n\n"
+     "Scenario KPIs:\n{scenario_kpis}\n\n"
+     "What-if summary:\n{what_if_summary}\n\n"
      "Anomaly highlights:\n{anomaly_highlights}\n\n"
      "Weather risk:\n{weather_risk}\n\n"
+     "Stakeholder reactions:\n{stakeholder_reactions}\n\n"
+     "Stakeholder synthesis:\n{stakeholder_synthesis}\n\n"
      "Dispatch plan:\n{dispatch_plan}\n\n"
-     "Generate HTML report.")
+     "Audit verdict: {audit_verdict} (retries: {audit_retries})\n"
+     "Audit violations: {audit_violations}\n\n"
+     "Generate the full HTML report.")
 ])
