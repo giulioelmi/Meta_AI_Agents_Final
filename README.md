@@ -19,6 +19,37 @@ requirements.txt       Python dependencies
 
 Generated files such as `dispatch_report_*.pdf`, `chroma_db/`, `__pycache__/`, and `.pytest_cache/` are intentionally ignored.
 
+## Agentic Flow
+
+```mermaid
+flowchart TD
+    Start([CLI run with disruption scenario])
+    Inputs[(PDF playbook + shipment CSV)]
+    PDF[PDF Context Agent<br/>RAG extracts SLAs, rules, thresholds]
+    CSV[Ops Analysis Agent<br/>Computes KPIs and anomaly highlights]
+    Weather[Weather Risk Node<br/>Checks route waypoint forecast risk]
+    WhatIf[What-If Agent<br/>Applies disruption and compares scenario KPIs]
+    Stakeholders[Stakeholder Simulation<br/>Runs persona reactions in parallel]
+    Planner[Planner Agent<br/>Creates dispatch recovery plan]
+    Judge[Judge / Audit Agent<br/>Checks plan against business rules]
+    Revise[Revise Agent<br/>Fixes audit violations]
+    Report[Report Agent<br/>Builds executive report text]
+    PDFOut[(dispatch_report_YYYYMMDD_HHMMSS.pdf)]
+
+    Start --> Inputs
+    Inputs --> PDF
+    PDF --> CSV
+    CSV --> Weather
+    Weather --> WhatIf
+    WhatIf --> Stakeholders
+    Stakeholders --> Planner
+    Planner --> Judge
+    Judge -- pass or max retries --> Report
+    Judge -- fail and retries remain --> Revise
+    Revise --> Judge
+    Report --> PDFOut
+```
+
 ## Requirements
 
 Use Python 3.11 or newer. The app requires:
