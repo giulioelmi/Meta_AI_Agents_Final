@@ -13,6 +13,8 @@ if __name__ == "__main__":
     state = {
         "pdf_path": "data/SeeWeeS Specialty Dispatch Playbook.pdf",
         "csv_path": "data/Incoming_shipment_03_06.csv",
+        "disruption_type": "demand_spike",
+        "disruption_params": {"multiplier": 1.2},
     }
 
     final = app.invoke(state)

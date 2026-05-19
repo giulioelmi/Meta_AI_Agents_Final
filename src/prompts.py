@@ -21,26 +21,30 @@ OPS_ANALYSIS_PROMPT = ChatPromptTemplate.from_messages([
 
 PLANNER_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "You are PlannerAgent. Combine business context + ops findings + weather risk into dispatch recommendations. "
+     "You are PlannerAgent. Combine business context + ops findings + weather risk + "
+     "what-if scenario impact + stakeholder concerns into a concrete dispatch plan. "
      "Prioritize SLA, safety, and cost.\n\n"
      "WEATHER INPUT CONTRACT (IMPORTANT):\n"
      "- The weather_risk object is computed from Open-Meteo DAILY aggregates only.\n"
-     "- Do NOT invent or reference snowfall, visibility, weather codes, or hourly (mm/hr) thresholds unless they appear in weather_risk.\n"
-     "- Use ONLY these fields if present: max_precip_mm_day, max_wind_gust_kmh, min_temp_c, risk_flags, risk_score_0_3.\n"
-     "- If corridor fields exist (route_risk_score_0_3, worst_waypoint, per_waypoint), interpret route_risk_score_0_3 as the corridor max "
-     "and worst_waypoint as the driver.\n\n"
-     "BUFFER POLICY (use this mapping):\n"
+     "- Do NOT invent or reference snowfall, visibility, weather codes, or hourly (mm/hr) thresholds "
+     "unless they appear in weather_risk.\n"
+     "- Use ONLY: max_precip_mm_day, max_wind_gust_kmh, min_temp_c, risk_flags, risk_score_0_3.\n"
+     "- If corridor fields exist (route_risk_score_0_3, worst_waypoint, per_waypoint), use those.\n\n"
+     "BUFFER POLICY:\n"
      "- risk_score 0 → 0% buffer\n"
      "- risk_score 1 → 10% buffer\n"
      "- risk_score 2 → 25% buffer\n"
      "- risk_score 3 → 40% buffer + escalation\n"),
     ("user",
-     "Business context:\n{business_context}\n\nOps insights:\n{ops_insights}\n\nWeather risk:\n{weather_risk}\n\n"
+     "Business context:\n{business_context}\n\nOps insights:\n{ops_insights}\n\n"
+     "Weather risk:\n{weather_risk}\n\nWhat-if scenario summary:\n{what_if_summary}\n\n"
+     "Scenario KPIs:\n{scenario_kpis}\n\nStakeholder concerns:\n{stakeholder_synthesis}\n\n"
      "Return:\n"
-     "1) Dispatch plan for next 24-48h (include buffer recommendation using the mapping above)\n"
-     "2) What to monitor (data + weather)\n"
-     "3) Contingency triggers (use risk_flags / risk_score only)\n"
-     "4) Expected KPI impacts\n")
+     "1) Dispatch plan for next 24-48h\n"
+     "2) What to monitor\n"
+     "3) Contingency triggers\n"
+     "4) Expected KPI impacts\n"
+     "5) How you addressed each stakeholder concern\n")
 ])
 
 REPORT_PROMPT = ChatPromptTemplate.from_messages([
