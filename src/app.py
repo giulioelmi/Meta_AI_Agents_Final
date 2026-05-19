@@ -3,147 +3,186 @@ from __future__ import annotations
 import sys
 import os
 
-# Ensure src/ is on the path when run as streamlit app.py
 sys.path.insert(0, os.path.dirname(__file__))
 
 from dotenv import load_dotenv
 load_dotenv()
 
 import streamlit as st
+from ui_helpers import NODE_STEPS, DISRUPTIONS, PAGE_CSS, build_pipeline_html
 
 st.set_page_config(
-    page_title="SeeWeeS Ops Command Center",
-    page_icon="🚚",
+    page_title="SeeWeeS Ops Intelligence",
     layout="wide",
+    initial_sidebar_state="collapsed",
+)
+st.markdown(PAGE_CSS, unsafe_allow_html=True)
+
+# ── Session state defaults ─────────────────────────────────────────────────────
+for key, default in [
+    ("disruption_type", "demand_spike"),
+    ("pipeline_done",   False),
+    ("final_state",     {}),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+# ── Logo / brand ───────────────────────────────────────────────────────────────
+st.markdown(
+    '<div style="padding:18px 40px 0;background:rgba(10,10,10,0.97);'
+    'border-bottom:1px solid #1d1d1f">'
+    '<div style="font-size:15px;font-weight:600;color:#f5f5f7;'
+    'letter-spacing:0.05em;padding-bottom:14px">'
+    'SeeWeeS <span style="color:#6e6e73;font-weight:400">/ Ops Intelligence</span>'
+    '</div></div>',
+    unsafe_allow_html=True,
 )
 
-st.title("🚚 SeeWeeS Ops Command Center")
-st.caption("Multi-agent AI system for medical supply chain dispatch")
+# ── Disruption type pill row ───────────────────────────────────────────────────
+disruption_keys = list(DISRUPTIONS.keys())
+cols = st.columns([1.4, 1.4, 1.6, 1.4, 0.2, 1.2], gap="small")
+run_clicked = False
 
-# ── Sidebar: scenario configuration ──────────────────────────────────────────
-with st.sidebar:
-    st.header("Scenario Configuration")
+for col, dtype in zip(cols[:4], disruption_keys):
+    cfg = DISRUPTIONS[dtype]
+    is_active = st.session_state.disruption_type == dtype
+    with col:
+        label = ("● " if is_active else "○ ") + cfg["label"]
+        if st.button(label, key=f"dtype_{dtype}", use_container_width=True):
+            if dtype != st.session_state.disruption_type:
+                st.session_state.disruption_type = dtype
+                st.session_state.pipeline_done   = False
+                st.session_state.final_state     = {}
+            st.rerun()
 
-    disruption_type = st.selectbox(
-        "Disruption Type",
-        options=["demand_spike", "driver_shortage", "warehouse_closure", "weather_event"],
-        format_func=lambda x: {
-            "demand_spike": "📈 Demand Spike",
-            "driver_shortage": "🚗 Driver Shortage",
-            "warehouse_closure": "🏭 Warehouse Closure",
-            "weather_event": "🌩️ Weather Event",
-        }[x],
-    )
+with cols[5]:
+    run_clicked = st.button("Run", key="run_btn", use_container_width=True, type="primary")
 
-    st.subheader("Parameters")
-    disruption_params: dict = {}
+# ── Disruption level control ───────────────────────────────────────────────────
+selected_type = st.session_state.disruption_type
+cfg = DISRUPTIONS[selected_type]
+disruption_params: dict = {}
 
-    if disruption_type == "demand_spike":
-        multiplier = st.slider("Demand multiplier", 1.0, 2.0, 1.2, 0.05)
-        disruption_params = {"multiplier": multiplier}
+level_col, _ = st.columns([3, 3], gap="small")
+with level_col:
+    if cfg["kind"] == "slider_float":
+        val = st.slider(
+            f"Level — {cfg['label']}",
+            min_value=float(cfg["min"]),
+            max_value=float(cfg["max"]),
+            value=float(cfg["default"]),
+            step=float(cfg["step"]),
+            format="×%.1f",
+        )
+        disruption_params = {cfg["param"]: val}
 
-    elif disruption_type == "driver_shortage":
-        shortage_pct = st.slider("Drivers unavailable (%)", 10, 70, 30, 5)
-        disruption_params = {"shortage_pct": shortage_pct / 100}
+    elif cfg["kind"] == "slider_pct":
+        val = st.slider(
+            f"Level — {cfg['label']}",
+            min_value=int(cfg["min"]),
+            max_value=int(cfg["max"]),
+            value=int(cfg["default"]),
+            step=int(cfg["step"]),
+            format="%d%%",
+        )
+        disruption_params = {cfg["param"]: val / 100}
 
-    elif disruption_type == "warehouse_closure":
-        location = st.selectbox("Closed location", ["Boston-MGH", "Boston-BWH"])
-        disruption_params = {"location": location}
+    elif cfg["kind"] == "slider_int":
+        val = st.slider(
+            f"Level — {cfg['label']}",
+            min_value=int(cfg["min"]),
+            max_value=int(cfg["max"]),
+            value=int(cfg["default"]),
+            step=int(cfg["step"]),
+        )
+        disruption_params = {cfg["param"]: val}
 
-    elif disruption_type == "weather_event":
-        risk_score = st.slider("Weather risk score (0–3)", 0, 3, 2)
-        disruption_params = {"risk_score": risk_score}
+    elif cfg["kind"] == "select":
+        val = st.selectbox(
+            f"Location — {cfg['label']}",
+            options=cfg["options"],
+        )
+        disruption_params = {cfg["param"]: val}
 
-    st.divider()
-    run_button = st.button("▶ Run Pipeline", type="primary", use_container_width=True)
+st.markdown("---")
 
-# ── Main area ─────────────────────────────────────────────────────────────────
-if run_button:
-    with st.spinner("Running multi-agent pipeline… this takes ~60–90 seconds"):
-        try:
-            from tracing import init_langsmith_tracing
-            init_langsmith_tracing()
-        except Exception:
-            pass  # LangSmith optional
+# ── Pipeline placeholder ───────────────────────────────────────────────────────
+pipeline_ph = st.empty()
+step_keys   = [s[0] for s in NODE_STEPS]
 
-        from graph import build_graph
 
-        app = build_graph()
-        initial_state = {
-            "pdf_path": os.path.join(os.path.dirname(__file__), "..", "data", "SeeWeeS Specialty Dispatch Playbook.pdf"),
-            "csv_path": os.path.join(os.path.dirname(__file__), "..", "data", "Incoming_shipment_03_06.csv"),
-            "disruption_type": disruption_type,
-            "disruption_params": disruption_params,
-        }
+def _show_pipeline(completed: list, active, accumulated: dict) -> None:
+    html = build_pipeline_html(completed, active, accumulated, selected_type)
+    pipeline_ph.empty()
+    with pipeline_ph.container():
+        st.components.v1.html(html, height=920, scrolling=True)
 
-        final = app.invoke(initial_state)
 
-    st.success("Pipeline complete!")
+# Idle state
+if not run_clicked and not st.session_state.pipeline_done:
+    _show_pipeline([], None, {})
 
-    # ── KPI dashboard ──
-    st.header("📊 KPI Dashboard")
-    col1, col2 = st.columns(2)
+# Restored state after a previous run
+if not run_clicked and st.session_state.pipeline_done:
+    _show_pipeline(step_keys, None, st.session_state.final_state)
 
-    baseline = final.get("csv_kpis", {})
-    scenario = final.get("scenario_kpis", {})
+# ── Run pipeline ───────────────────────────────────────────────────────────────
+if run_clicked:
+    st.session_state.pipeline_done = False
+    st.session_state.final_state   = {}
 
-    with col1:
-        st.subheader("Baseline")
-        if baseline:
-            st.metric("On-time rate", f"{baseline.get('on_time_rate_pct', 0):.1f}%")
-            st.metric("Cold chain breach rate", f"{baseline.get('cold_chain_breach_rate_pct', 0):.1f}%")
-            st.metric("Shipments at risk", baseline.get("shipments_at_risk", 0))
-            st.metric("Critical hospital on-time", f"{baseline.get('critical_hospital_on_time_pct', 0):.1f}%")
+    try:
+        from tracing import init_langsmith_tracing
+        init_langsmith_tracing()
+    except Exception:
+        pass
 
-    with col2:
-        st.subheader(f"Scenario: {disruption_type}")
-        if scenario:
-            delta_ontime = scenario.get("on_time_rate_pct", 0) - baseline.get("on_time_rate_pct", 0)
-            delta_breach = scenario.get("cold_chain_breach_rate_pct", 0) - baseline.get("cold_chain_breach_rate_pct", 0)
-            st.metric("On-time rate", f"{scenario.get('on_time_rate_pct', 0):.1f}%", delta=f"{delta_ontime:+.1f}%")
-            st.metric("Cold chain breach rate", f"{scenario.get('cold_chain_breach_rate_pct', 0):.1f}%", delta=f"{delta_breach:+.1f}%")
-            st.metric("Shipments at risk", scenario.get("shipments_at_risk", 0))
-            st.metric("Critical hospital on-time", f"{scenario.get('critical_hospital_on_time_pct', 0):.1f}%")
+    from graph import build_graph
 
-    # ── Audit result ──
-    st.header("⚖️ Audit Result")
-    verdict = final.get("audit_verdict", "unknown")
-    retries = final.get("audit_retries", 0)
-    violations = final.get("audit_violations", [])
-    if verdict == "pass":
-        st.success(f"✅ Plan APPROVED after {retries} revision(s)")
-    else:
-        st.warning(f"⚠️ Plan reached max retries ({retries}) — proceeding with best available plan")
-    if violations:
-        with st.expander("Violations flagged"):
-            for v in violations:
-                st.write(f"• {v}")
+    app        = build_graph()
+    init_state = {
+        "pdf_path": os.path.join(
+            os.path.dirname(__file__), "..", "data",
+            "SeeWeeS Specialty Dispatch Playbook.pdf",
+        ),
+        "csv_path": os.path.join(
+            os.path.dirname(__file__), "..", "data",
+            "Incoming_shipment_03_06.csv",
+        ),
+        "disruption_type":   selected_type,
+        "disruption_params": disruption_params,
+    }
 
-    # ── Stakeholder synthesis ──
-    st.header("👥 Stakeholder Simulation")
-    reactions = final.get("stakeholder_reactions", {})
-    if reactions:
-        tabs = st.tabs(list(reactions.keys()))
-        for tab, (persona, reaction) in zip(tabs, reactions.items()):
-            with tab:
-                st.write(reaction)
-    synthesis = final.get("stakeholder_synthesis", "")
-    if synthesis:
-        with st.expander("Synthesis — Failure Paths & Escalation Triggers", expanded=True):
-            st.markdown(synthesis)
+    completed:  list = []
+    accumulated: dict = {}
 
-    # ── Executive report ──
-    st.header("📄 Executive Report")
-    report_html = final.get("report_html", "")
+    _show_pipeline([], step_keys[0], {})
+
+    for event in app.stream(init_state, stream_mode="updates"):
+        for node_name, state_update in event.items():
+            accumulated.update(state_update)
+            if node_name in step_keys:
+                if node_name not in completed:
+                    completed.append(node_name)
+                idx    = step_keys.index(node_name)
+                active = step_keys[idx + 1] if idx + 1 < len(step_keys) else None
+            else:
+                active = None
+            _show_pipeline(completed, active, accumulated)
+
+    _show_pipeline(step_keys, None, accumulated)
+    st.session_state.pipeline_done = True
+    st.session_state.final_state   = accumulated
+
+# ── Full executive report (below pipeline) ────────────────────────────────────
+if st.session_state.pipeline_done:
+    report_html = st.session_state.final_state.get("report_html", "")
     if report_html:
-        st.components.v1.html(report_html, height=800, scrolling=True)
-    else:
-        st.warning("No report generated.")
-
-else:
-    st.info("Configure your disruption scenario in the sidebar and click **▶ Run Pipeline** to begin.")
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Supply_chain_network.svg/640px-Supply_chain_network.svg.png",
-        caption="SeeWeeS I-95 Corridor Operations",
-        width="stretch",
-    )
+        st.markdown(
+            '<div style="padding:0 40px">'
+            '<h2 style="font-size:18px;font-weight:600;color:#f5f5f7;'
+            'margin:32px 0 16px;font-family:-apple-system,sans-serif">'
+            'Executive Report</h2></div>',
+            unsafe_allow_html=True,
+        )
+        st.components.v1.html(report_html, height=900, scrolling=True)
