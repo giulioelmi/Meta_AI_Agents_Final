@@ -1,0 +1,156 @@
+<h2>Overall Layout — Which approach?</h2>
+<p class="subtitle">How should the pipeline flow diagram, network, and results be arranged?</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#eee;min-height:220px">
+        <!-- Top bar -->
+        <div style="background:#16213e;border-radius:4px;padding:6px 10px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          <span style="background:#e94560;border-radius:3px;padding:2px 8px;font-size:10px">📈 Demand Spike</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🚗 Driver Shortage</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🏭 Warehouse</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🌩️ Weather</span>
+          <span style="margin-left:auto;background:#28a745;border-radius:3px;padding:2px 10px;font-size:10px">▶ Run</span>
+        </div>
+        <!-- Two columns -->
+        <div style="display:flex;gap:8px;height:170px">
+          <!-- Left: pipeline flow -->
+          <div style="width:38%;background:#0f3460;border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:4px">
+            <div style="background:#1a4a7a;border-radius:3px;padding:4px 6px;font-size:9px;color:#aaa">📄 PDF Context ✓</div>
+            <div style="background:#1a4a7a;border-radius:3px;padding:4px 6px;font-size:9px;color:#aaa">📊 CSV Analysis ✓</div>
+            <div style="background:#e94560;border-radius:3px;padding:4px 6px;font-size:9px;font-weight:bold">⚡ What-If ← active</div>
+            <div style="background:#333;border-radius:3px;padding:4px 6px;font-size:9px;color:#666">👥 Stakeholder Sim</div>
+            <div style="background:#333;border-radius:3px;padding:4px 6px;font-size:9px;color:#666">🗺️ Planner</div>
+            <div style="background:#333;border-radius:3px;padding:4px 6px;font-size:9px;color:#666">⚖️ Judge</div>
+            <div style="background:#333;border-radius:3px;padding:4px 6px;font-size:9px;color:#666">📑 Report</div>
+          </div>
+          <!-- Right: main content / visualization -->
+          <div style="flex:1;background:#0f3460;border-radius:4px;padding:8px">
+            <div style="font-size:9px;color:#aaa;margin-bottom:6px">⚡ What-If: Demand Spike ×1.2</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <div style="flex:1;background:#1a4a7a;border-radius:3px;padding:6px;text-align:center">
+                <div style="font-size:8px;color:#aaa">Baseline on-time</div>
+                <div style="font-size:14px;color:#28a745;font-weight:bold">82%</div>
+              </div>
+              <div style="font-size:16px;color:#aaa;align-self:center">→</div>
+              <div style="flex:1;background:#1a4a7a;border-radius:3px;padding:6px;text-align:center">
+                <div style="font-size:8px;color:#aaa">Scenario on-time</div>
+                <div style="font-size:14px;color:#e94560;font-weight:bold">61%</div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:#aaa;background:#1a4a7a;border-radius:3px;padding:6px">
+              📋 Demand spike increases at-risk shipments by 40%…
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Command Center (Sidebar Flow)</h3>
+      <p>Pipeline steps always visible on the left. Right panel shows the active step's details, KPIs, or the network graph when stakeholder sim runs. The active step is highlighted; completed steps show a checkmark.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#eee;min-height:220px">
+        <!-- Top bar -->
+        <div style="background:#16213e;border-radius:4px;padding:6px 10px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          <span style="background:#e94560;border-radius:3px;padding:2px 8px;font-size:10px">📈 Demand Spike</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🚗 Driver Shortage</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🏭 Warehouse</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🌩️ Weather</span>
+          <span style="margin-left:auto;background:#28a745;border-radius:3px;padding:2px 10px;font-size:10px">▶ Run</span>
+        </div>
+        <!-- Full-width pipeline flow (horizontal) with zoom indicator -->
+        <div style="background:#0f3460;border-radius:4px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;gap:3px;align-items:center;overflow:hidden">
+            <div style="background:#28a745;border-radius:3px;padding:3px 5px;font-size:8px;white-space:nowrap">📄 ✓</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#28a745;border-radius:3px;padding:3px 5px;font-size:8px;white-space:nowrap">📊 ✓</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#e94560;border-radius:3px;padding:3px 10px;font-size:9px;font-weight:bold;white-space:nowrap;box-shadow:0 0 8px #e94560aa">⚡ What-If</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#333;border-radius:3px;padding:3px 5px;font-size:8px;color:#555;white-space:nowrap">👥</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#333;border-radius:3px;padding:3px 5px;font-size:8px;color:#555;white-space:nowrap">🗺️</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#333;border-radius:3px;padding:3px 5px;font-size:8px;color:#555;white-space:nowrap">⚖️</div>
+            <div style="color:#555;font-size:10px">→</div>
+            <div style="background:#333;border-radius:3px;padding:3px 5px;font-size:8px;color:#555;white-space:nowrap">📑</div>
+          </div>
+        </div>
+        <!-- Zoomed step detail (full width) -->
+        <div style="background:#0f3460;border-radius:4px;padding:10px;border:1px solid #e94560;min-height:100px">
+          <div style="font-size:10px;color:#e94560;margin-bottom:6px;font-weight:bold">⚡ What-If Simulation — ACTIVE</div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;background:#1a4a7a;border-radius:3px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa">on-time baseline</div>
+              <div style="font-size:16px;color:#28a745">82%</div>
+            </div>
+            <div style="flex:1;background:#1a4a7a;border-radius:3px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa">on-time scenario</div>
+              <div style="font-size:16px;color:#e94560">61%</div>
+            </div>
+            <div style="flex:1;background:#1a4a7a;border-radius:3px;padding:6px;text-align:center">
+              <div style="font-size:8px;color:#aaa">units at risk</div>
+              <div style="font-size:16px;color:#f0a500">14</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Theater View (Horizontal Flow + Zoom)</h3>
+      <p>A compact horizontal pipeline track runs across the top. Below it, the active step expands to fill the window — showing step details, KPIs, or the network graph. Clean, focused, one thing at a time.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#1a1a2e;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#eee;min-height:220px">
+        <!-- Top bar -->
+        <div style="background:#16213e;border-radius:4px;padding:6px 10px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          <span style="background:#e94560;border-radius:3px;padding:2px 8px;font-size:10px">📈 Demand Spike</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🚗 Driver Shortage</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🏭 Warehouse</span>
+          <span style="background:#333;border-radius:3px;padding:2px 8px;font-size:10px;color:#aaa">🌩️ Weather</span>
+          <span style="margin-left:auto;background:#28a745;border-radius:3px;padding:2px 10px;font-size:10px">▶ Run</span>
+        </div>
+        <!-- Vertical pipeline (center) with expanding active node -->
+        <div style="display:flex;justify-content:center;gap:6px;height:175px">
+          <div style="width:45%;display:flex;flex-direction:column;gap:3px;align-items:center">
+            <div style="background:#1a4a7a;border-radius:3px;padding:3px 10px;font-size:9px;color:#aaa;width:90%;text-align:center">📄 PDF Context ✓</div>
+            <div style="color:#555;font-size:8px">↓</div>
+            <div style="background:#1a4a7a;border-radius:3px;padding:3px 10px;font-size:9px;color:#aaa;width:90%;text-align:center">📊 CSV Analysis ✓</div>
+            <div style="color:#555;font-size:8px">↓</div>
+            <!-- EXPANDED active node -->
+            <div style="background:#e94560;border-radius:4px;padding:8px;width:90%;box-shadow:0 0 12px #e9456066">
+              <div style="font-size:9px;font-weight:bold;text-align:center;margin-bottom:4px">⚡ What-If — ACTIVE</div>
+              <div style="display:flex;gap:4px">
+                <div style="flex:1;background:rgba(0,0,0,0.3);border-radius:2px;padding:3px;text-align:center;font-size:8px">82%→61%<br><span style="color:#ffaaaa">on-time</span></div>
+                <div style="flex:1;background:rgba(0,0,0,0.3);border-radius:2px;padding:3px;text-align:center;font-size:8px">+40%<br><span style="color:#ffaaaa">at-risk</span></div>
+              </div>
+            </div>
+            <div style="color:#555;font-size:8px">↓</div>
+            <div style="background:#333;border-radius:3px;padding:3px 10px;font-size:9px;color:#555;width:90%;text-align:center">👥 Stakeholder Sim</div>
+            <div style="color:#555;font-size:8px">↓</div>
+            <div style="background:#333;border-radius:3px;padding:3px 10px;font-size:9px;color:#555;width:90%;text-align:center">🗺️ → ⚖️ → 📑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Centered Vertical Flow (Inline Expand)</h3>
+      <p>The pipeline runs vertically in the center of the screen. The active node expands in-place to show its details — like an accordion. The network replaces the stakeholder node when that step runs.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Click an option above, or describe what you have in mind in the terminal.</p>
