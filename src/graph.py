@@ -10,7 +10,6 @@ from langgraph.graph import StateGraph, END
 from tools.pdf_tools import PdfRag
 from tools.csv_tools import analyze_csv
 from tools.weather_tools import get_weather_forecast, derive_dispatch_weather_risk
-from tools.email_tools import send_email_smtp
 from agents import run_context_agent, run_ops_agent, run_planner_agent, run_report_agent
 from nodes.what_if import node_what_if
 from nodes.stakeholder_sim import node_stakeholder_sim
@@ -49,7 +48,7 @@ class AppState(TypedDict, total=False):
     audit_violations: List[str]
     audit_retries: int
 
-    report_html: str
+    report_text: str
 
 
 def node_pdf_context(state: AppState) -> AppState:
@@ -201,7 +200,7 @@ def node_planner(state: AppState) -> AppState:
 
 
 def node_report(state: AppState) -> AppState:
-    html = run_report_agent(
+    report = run_report_agent(
         business_context=state.get("business_context", ""),
         kpis=state.get("csv_kpis", {}),
         scenario_kpis=state.get("scenario_kpis", {}),
@@ -215,18 +214,7 @@ def node_report(state: AppState) -> AppState:
         audit_retries=state.get("audit_retries", 0),
         audit_violations=state.get("audit_violations", []),
     )
-    return {"report_html": html}
-
-
-def node_email(state: AppState) -> AppState:
-    to_email = os.getenv("REPORT_EMAIL_TO", "").strip()
-    if not to_email:
-        print("REPORT_EMAIL_TO not set -> skipping email send.")
-        return {}
-
-    subject = "MSBA Ops Multi-Agent Dispatch Report"
-    send_email_smtp(subject=subject, html_body=state["report_html"], to_email=to_email)
-    return {}
+    return {"report_text": report}
 
 
 def build_graph():
@@ -241,7 +229,6 @@ def build_graph():
     g.add_node("judge",            node_judge)
     g.add_node("revise_plan",      node_revise)
     g.add_node("report",           node_report)
-    g.add_node("email",            node_email)
 
     g.set_entry_point("pdf_context")
     g.add_edge("pdf_context",     "csv_analysis")
@@ -255,7 +242,6 @@ def build_graph():
         "revise_plan": "revise_plan",
     })
     g.add_edge("revise_plan",     "judge")
-    g.add_edge("report",          "email")
-    g.add_edge("email",           END)
+    g.add_edge("report",          END)
 
     return g.compile()
