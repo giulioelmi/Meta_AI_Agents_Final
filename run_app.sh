@@ -8,12 +8,12 @@ cd "$SCRIPT_DIR"
 echo "Starting SeeWeeS Ops Command Center..."
 
 # Install streamlit if missing
-if ! python -m streamlit --version &>/dev/null 2>&1; then
+if ! python3 -m streamlit --version &>/dev/null 2>&1; then
   echo "Installing streamlit..."
-  pip install streamlit>=1.35.0
+  pip3 install "streamlit>=1.35.0"
 fi
 
-exec python -m streamlit run src/app.py \
+exec python3 -m streamlit run src/app.py \
   --server.port 8501 \
   --server.headless false \
   --browser.gatherUsageStats false

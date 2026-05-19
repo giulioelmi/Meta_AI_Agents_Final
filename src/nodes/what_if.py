@@ -2,6 +2,7 @@
 from __future__ import annotations
 from datetime import timedelta
 from typing import Dict, Any
+import io
 import pandas as pd
 from agents import llm
 from prompts_advanced import WHAT_IF_PROMPT
@@ -66,7 +67,7 @@ _HANDLERS = {
 def node_what_if(state: Dict[str, Any]) -> Dict[str, Any]:
     disruption_type = state.get("disruption_type", "demand_spike")
     disruption_params = state.get("disruption_params", {"multiplier": 1.2})
-    df = pd.read_json(state["augmented_df_json"])
+    df = pd.read_json(io.StringIO(state["augmented_df_json"]))
 
     # Restore datetime columns lost in JSON serialization
     for col in ("scheduled_date", "actual_date"):
