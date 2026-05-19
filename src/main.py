@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from dotenv import load_dotenv
 load_dotenv()
+from tools.report_output import write_report_pdf
 
 STEP_NAMES = [
     "pdf_context",
@@ -112,14 +113,9 @@ def print_summary(final: dict, disruption_type: str, total_elapsed: float) -> No
     print(f"\n  Audit:   {audit_str} after {retries} revision(s)")
     print(f"  Runtime: {total_elapsed:.1f}s")
 
-    report_html = final.get("report_html", "")
-    if report_html:
-        out_path = os.path.join(
-            os.path.dirname(__file__), "..", "output", "report.html"
-        )
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(report_html)
+    report_text = final.get("report_text", "")
+    if report_text:
+        out_path = write_report_pdf(report_text=report_text, output_dir=os.getcwd())
         print(f"  Report:  {os.path.normpath(out_path)}")
 
     print()
@@ -128,6 +124,13 @@ def print_summary(final: dict, disruption_type: str, total_elapsed: float) -> No
 def main() -> None:
     args   = parse_args()
     params = build_params(args)
+    if not os.getenv("OPENAI_API_KEY"):
+        print("\nError: Missing OpenAI credentials.")
+        print("Set OPENAI_API_KEY in your shell or in .env before running.")
+        print("Example:")
+        print("  cp .env.example .env")
+        print("  # then add OPENAI_API_KEY=your_key_here")
+        raise SystemExit(1)
 
     try:
         from tracing import init_langsmith_tracing
