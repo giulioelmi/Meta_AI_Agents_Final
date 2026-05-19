@@ -7,6 +7,12 @@ cd "$SCRIPT_DIR"
 
 echo "Starting SeeWeeS Ops Command Center..."
 
+# Suppress Streamlit first-run email prompt
+mkdir -p ~/.streamlit
+if [ ! -f ~/.streamlit/credentials.toml ]; then
+  printf '[general]\nemail = ""\n' > ~/.streamlit/credentials.toml
+fi
+
 # Install streamlit if missing
 if ! python3 -m streamlit --version &>/dev/null 2>&1; then
   echo "Installing streamlit..."

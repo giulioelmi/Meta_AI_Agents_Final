@@ -145,5 +145,5 @@ else:
     st.image(
         "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Supply_chain_network.svg/640px-Supply_chain_network.svg.png",
         caption="SeeWeeS I-95 Corridor Operations",
-        use_container_width=True,
+        width="stretch",
     )
