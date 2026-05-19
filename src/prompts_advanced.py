@@ -64,3 +64,31 @@ SYNTHESIS_PROMPT = ChatPromptTemplate.from_messages([
      "Provide a structured synthesis under these three headers:\n"
      "## Consensus\n## Failure Paths\n## Escalation Triggers")
 ])
+
+# ---------- Judge / Audit Prompts ----------
+
+JUDGE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system",
+     "You are JudgeAgent. You audit a dispatch plan against the SeeWeeS business rules. "
+     "Return a JSON object with exactly these keys:\n"
+     '  "verdict": "pass" or "fail"\n'
+     '  "violations": list of rule violations found (empty list if pass)\n'
+     '  "required_fixes": list of specific changes the PlannerAgent must make (empty list if pass)\n'
+     "Be strict. A plan that ignores cold chain breaches, priority-1 SLAs, or risk escalation thresholds must fail."),
+    ("user",
+     "Business rules:\n{business_context}\n\n"
+     "Dispatch plan to audit:\n{dispatch_plan}\n\n"
+     "Return only valid JSON.")
+])
+
+REVISE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system",
+     "You are PlannerAgent. Your previous dispatch plan was rejected by the JudgeAgent. "
+     "Fix every violation listed. Do not repeat the same mistakes."),
+    ("user",
+     "Original plan:\n{dispatch_plan}\n\n"
+     "Violations found:\n{violations}\n\n"
+     "Required fixes:\n{required_fixes}\n\n"
+     "Stakeholder concerns:\n{stakeholder_synthesis}\n\n"
+     "Write the corrected dispatch plan.")
+])

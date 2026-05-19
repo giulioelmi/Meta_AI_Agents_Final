@@ -40,3 +40,32 @@ def run_report_agent(
         weather_risk=weather_risk,
         dispatch_plan=dispatch_plan
     )).content
+
+
+def run_judge_agent(business_context: str, dispatch_plan: str) -> Dict[str, Any]:
+    import json as _json
+    from prompts_advanced import JUDGE_PROMPT
+    raw = llm.invoke(JUDGE_PROMPT.format_messages(
+        business_context=business_context,
+        dispatch_plan=dispatch_plan,
+    )).content
+    try:
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = "\n".join(cleaned.split("\n")[1:])
+            cleaned = cleaned.rstrip("`").strip()
+        return _json.loads(cleaned)
+    except Exception:
+        return {"verdict": "pass", "violations": [], "required_fixes": []}
+
+
+def run_revise_agent(dispatch_plan: str, violations: list, required_fixes: list,
+                     stakeholder_synthesis: str) -> str:
+    from prompts_advanced import REVISE_PROMPT
+    return llm.invoke(REVISE_PROMPT.format_messages(
+        dispatch_plan=dispatch_plan,
+        violations="\n".join(f"- {v}" for v in violations),
+        required_fixes="\n".join(f"- {f}" for f in required_fixes),
+        stakeholder_synthesis=stakeholder_synthesis,
+    )).content
