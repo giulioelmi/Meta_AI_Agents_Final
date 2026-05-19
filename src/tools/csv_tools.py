@@ -4,6 +4,8 @@ from typing import Dict, Any, Tuple, List
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import IsolationForest
+from tools.augment_tools import augment_shipment_df
+from tools.kpi_tools import compute_domain_kpis
 
 
 @dataclass
@@ -13,6 +15,7 @@ class CsvAnalysisResult:
     anomalies: pd.DataFrame
     cleaned_shape: Tuple[int, int]
     numeric_cols: List[str]
+    augmented_df: pd.DataFrame
 
 
 def analyze_csv(csv_path: str) -> CsvAnalysisResult:
@@ -39,13 +42,10 @@ def analyze_csv(csv_path: str) -> CsvAnalysisResult:
         "columns": list(df.columns),
     }
 
-    # Generic KPI examples: you will tailor later once we see headers
-    kpis: Dict[str, Any] = {}
+    # Augment shipment data and compute domain KPIs
+    df = augment_shipment_df(df)
+    kpis = compute_domain_kpis(df)
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-    if numeric_cols:
-        kpis["numeric_columns_count"] = len(numeric_cols)
-        kpis["rows_count"] = int(df.shape[0])
 
     # Anomalies on numeric cols
     anomalies = pd.DataFrame()
@@ -71,4 +71,5 @@ def analyze_csv(csv_path: str) -> CsvAnalysisResult:
         anomalies=anomalies,
         cleaned_shape=df.shape,
         numeric_cols=numeric_cols,
+        augmented_df=df,
     )

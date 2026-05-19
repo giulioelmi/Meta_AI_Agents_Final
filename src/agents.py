@@ -19,24 +19,77 @@ def run_ops_agent(summary: Dict[str, Any], kpis: Dict[str, Any], anomalies_md: s
         summary=summary, kpis=kpis, anomalies_md=anomalies_md
     )).content
 
-def run_planner_agent(business_context: str, ops_insights: str, weather_risk: Dict[str, Any]) -> str:
+def run_planner_agent(
+    business_context: str,
+    ops_insights: str,
+    weather_risk: Dict[str, Any],
+    what_if_summary: str = "",
+    scenario_kpis: Dict[str, Any] = None,
+    stakeholder_synthesis: str = "",
+) -> str:
     return llm.invoke(PLANNER_PROMPT.format_messages(
         business_context=business_context,
         ops_insights=ops_insights,
-        weather_risk=weather_risk
+        weather_risk=weather_risk,
+        what_if_summary=what_if_summary,
+        scenario_kpis=scenario_kpis or {},
+        stakeholder_synthesis=stakeholder_synthesis,
     )).content
 
 def run_report_agent(
     business_context: str,
     kpis: Dict[str, Any],
+    scenario_kpis: Dict[str, Any],
+    what_if_summary: str,
     anomaly_highlights: str,
     weather_risk: Dict[str, Any],
+    stakeholder_reactions: Dict[str, str],
+    stakeholder_synthesis: str,
     dispatch_plan: str,
+    audit_verdict: str,
+    audit_retries: int,
+    audit_violations: list,
 ) -> str:
     return llm.invoke(REPORT_PROMPT.format_messages(
         business_context=business_context,
         kpis=kpis,
+        scenario_kpis=scenario_kpis,
+        what_if_summary=what_if_summary,
         anomaly_highlights=anomaly_highlights,
         weather_risk=weather_risk,
-        dispatch_plan=dispatch_plan
+        stakeholder_reactions=stakeholder_reactions,
+        stakeholder_synthesis=stakeholder_synthesis,
+        dispatch_plan=dispatch_plan,
+        audit_verdict=audit_verdict,
+        audit_retries=audit_retries,
+        audit_violations=audit_violations,
+    )).content
+
+
+def run_judge_agent(business_context: str, dispatch_plan: str) -> Dict[str, Any]:
+    import json as _json
+    from prompts_advanced import JUDGE_PROMPT
+    raw = llm.invoke(JUDGE_PROMPT.format_messages(
+        business_context=business_context,
+        dispatch_plan=dispatch_plan,
+    )).content
+    try:
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = "\n".join(cleaned.split("\n")[1:])
+            cleaned = cleaned.rstrip("`").strip()
+        return _json.loads(cleaned)
+    except Exception:
+        return {"verdict": "pass", "violations": [], "required_fixes": []}
+
+
+def run_revise_agent(dispatch_plan: str, violations: list, required_fixes: list,
+                     stakeholder_synthesis: str) -> str:
+    from prompts_advanced import REVISE_PROMPT
+    return llm.invoke(REVISE_PROMPT.format_messages(
+        dispatch_plan=dispatch_plan,
+        violations="\n".join(f"- {v}" for v in violations),
+        required_fixes="\n".join(f"- {f}" for f in required_fixes),
+        stakeholder_synthesis=stakeholder_synthesis,
     )).content

@@ -12,6 +12,9 @@ from tools.csv_tools import analyze_csv
 from tools.weather_tools import get_weather_forecast, derive_dispatch_weather_risk
 from tools.email_tools import send_email_smtp
 from agents import run_context_agent, run_ops_agent, run_planner_agent, run_report_agent
+from nodes.what_if import node_what_if
+from nodes.stakeholder_sim import node_stakeholder_sim
+from nodes.judge import node_judge, node_revise, route_after_judge
 
 load_dotenv()
 
@@ -26,11 +29,26 @@ class AppState(TypedDict, total=False):
     csv_kpis: Dict[str, Any]
     anomalies_md: str
     ops_insights: str
+    augmented_df_json: str          # augmented DataFrame serialized as JSON string
 
-    # In corridor mode we store a route-level dict in weather_risk; in fallback mode it's single-location risk dict.
     weather_risk: Dict[str, Any]
 
+    # What-if scenario
+    disruption_type: str            # "demand_spike" | "driver_shortage" | "warehouse_closure" | "weather_event"
+    disruption_params: Dict[str, Any]
+    scenario_kpis: Dict[str, Any]
+    what_if_summary: str
+
+    # Stakeholder simulation
+    stakeholder_reactions: Dict[str, str]   # persona_name -> reaction text
+    stakeholder_synthesis: str
+
+    # Planner + audit loop
     dispatch_plan: str
+    audit_verdict: str              # "pass" | "fail"
+    audit_violations: List[str]
+    audit_retries: int
+
     report_html: str
 
 
@@ -61,6 +79,7 @@ def node_csv_analysis(state: AppState) -> AppState:
         "csv_kpis": res.kpis,
         "anomalies_md": anomalies_md,
         "ops_insights": ops_insights,
+        "augmented_df_json": res.augmented_df.to_json(),
     }
 
 
@@ -174,17 +193,27 @@ def node_planner(state: AppState) -> AppState:
         business_context=state.get("business_context", ""),
         ops_insights=state.get("ops_insights", ""),
         weather_risk=state.get("weather_risk", {}),
+        what_if_summary=state.get("what_if_summary", ""),
+        scenario_kpis=state.get("scenario_kpis", {}),
+        stakeholder_synthesis=state.get("stakeholder_synthesis", ""),
     )
-    return {"dispatch_plan": plan}
+    return {"dispatch_plan": plan, "audit_retries": 0}
 
 
 def node_report(state: AppState) -> AppState:
     html = run_report_agent(
         business_context=state.get("business_context", ""),
         kpis=state.get("csv_kpis", {}),
+        scenario_kpis=state.get("scenario_kpis", {}),
+        what_if_summary=state.get("what_if_summary", ""),
         anomaly_highlights=state.get("anomalies_md", "(none)"),
         weather_risk=state.get("weather_risk", {}),
+        stakeholder_reactions=state.get("stakeholder_reactions", {}),
+        stakeholder_synthesis=state.get("stakeholder_synthesis", ""),
         dispatch_plan=state.get("dispatch_plan", ""),
+        audit_verdict=state.get("audit_verdict", "unknown"),
+        audit_retries=state.get("audit_retries", 0),
+        audit_violations=state.get("audit_violations", []),
     )
     return {"report_html": html}
 
@@ -203,19 +232,30 @@ def node_email(state: AppState) -> AppState:
 def build_graph():
     g = StateGraph(AppState)
 
-    g.add_node("pdf_context", node_pdf_context)
-    g.add_node("csv_analysis", node_csv_analysis)
-    g.add_node("weather", node_weather)
-    g.add_node("planner", node_planner)
-    g.add_node("report", node_report)
-    g.add_node("email", node_email)
+    g.add_node("pdf_context",      node_pdf_context)
+    g.add_node("csv_analysis",     node_csv_analysis)
+    g.add_node("weather",          node_weather)
+    g.add_node("what_if",          node_what_if)
+    g.add_node("stakeholder_sim",  node_stakeholder_sim)
+    g.add_node("planner",          node_planner)
+    g.add_node("judge",            node_judge)
+    g.add_node("revise_plan",      node_revise)
+    g.add_node("report",           node_report)
+    g.add_node("email",            node_email)
 
     g.set_entry_point("pdf_context")
-    g.add_edge("pdf_context", "csv_analysis")
-    g.add_edge("csv_analysis", "weather")
-    g.add_edge("weather", "planner")
-    g.add_edge("planner", "report")
-    g.add_edge("report", "email")
-    g.add_edge("email", END)
+    g.add_edge("pdf_context",     "csv_analysis")
+    g.add_edge("csv_analysis",    "weather")
+    g.add_edge("weather",         "what_if")
+    g.add_edge("what_if",         "stakeholder_sim")
+    g.add_edge("stakeholder_sim", "planner")
+    g.add_edge("planner",         "judge")
+    g.add_conditional_edges("judge", route_after_judge, {
+        "report":      "report",
+        "revise_plan": "revise_plan",
+    })
+    g.add_edge("revise_plan",     "judge")
+    g.add_edge("report",          "email")
+    g.add_edge("email",           END)
 
     return g.compile()

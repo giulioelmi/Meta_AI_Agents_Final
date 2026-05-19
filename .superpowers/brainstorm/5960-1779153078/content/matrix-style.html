@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SeeWeeS — Matrix Style Mockup</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #050a05;
+    color: #c8ffc8;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,65,0.015) 2px,
+      rgba(0,255,65,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: rgba(0,20,0,0.95);
+    border-bottom: 1px solid #00ff4120;
+    position: sticky; top: 0; z-index: 10;
+  }
+
+  .topbar-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    color: #00ff41;
+    letter-spacing: 3px;
+    margin-right: 16px;
+    text-shadow: 0 0 10px #00ff4180;
+  }
+
+  .disrupt-btn {
+    padding: 6px 14px;
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid #003b00;
+    background: #020d02;
+    color: #4a9a4a;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .disrupt-btn:hover { border-color: #00ff41; color: #00ff41; }
+  .disrupt-btn.active {
+    border-color: #00ff41;
+    background: #001a00;
+    color: #00ff41;
+    box-shadow: 0 0 10px #00ff4130, inset 0 0 8px #00ff4115;
+  }
+
+  .run-btn {
+    margin-left: auto;
+    padding: 8px 24px;
+    background: transparent;
+    border: 1px solid #00ff41;
+    color: #00ff41;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-shadow: 0 0 8px #00ff4180;
+    box-shadow: 0 0 12px #00ff4120;
+    transition: all 0.2s;
+  }
+  .run-btn:hover {
+    background: #00ff4115;
+    box-shadow: 0 0 20px #00ff4140;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── PIPELINE NODE ── */
+  .pipeline-node {
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .node-box {
+    width: 100%;
+    border: 1px solid #003b00;
+    border-radius: 4px;
+    background: #020d02;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #2a5a2a;
+    font-size: 12px;
+    letter-spacing: 1px;
+    transition: all 0.4s ease;
+  }
+
+  .node-box.done {
+    border-color: #006600;
+    color: #4a9a4a;
+    background: #030f03;
+  }
+  .node-box.done .node-icon { color: #00cc44; }
+  .node-box.done .node-check { display: inline; }
+
+  .node-box.active {
+    border-color: #00ff41;
+    color: #ccffcc;
+    background: #021402;
+    box-shadow: 0 0 20px #00ff4120, 0 0 40px #00ff4108;
+    padding: 16px 18px;
+  }
+  .node-box.active .node-icon { color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+  .node-box.active .node-label { color: #00ff41; text-shadow: 0 0 6px #00ff4180; }
+
+  .node-icon { font-size: 16px; min-width: 20px; text-align: center; }
+  .node-label { font-weight: bold; flex: 1; }
+  .node-desc { font-size: 10px; color: #2a5a2a; margin-top: 1px; }
+  .node-check { display: none; color: #00cc44; margin-left: auto; }
+
+  /* Active node expanded content */
+  .node-expand {
+    width: 100%;
+    background: #010a01;
+    border: 1px solid #00ff4130;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 14px 18px;
+    display: none;
+  }
+  .node-box.active + .node-expand { display: block; }
+
+  .kpi-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .kpi-card {
+    flex: 1;
+    background: #020d02;
+    border: 1px solid #003b00;
+    border-radius: 3px;
+    padding: 8px;
+    text-align: center;
+  }
+  .kpi-label { font-size: 9px; color: #2a6a2a; letter-spacing: 1px; margin-bottom: 3px; }
+  .kpi-value { font-size: 18px; font-weight: bold; }
+  .kpi-value.good { color: #00ff41; text-shadow: 0 0 8px #00ff4160; }
+  .kpi-value.bad  { color: #ff4141; text-shadow: 0 0 8px #ff414160; }
+  .kpi-value.warn { color: #ffb700; text-shadow: 0 0 8px #ffb70060; }
+
+  .log-line {
+    font-size: 10px;
+    color: #2a7a2a;
+    padding: 3px 0;
+    border-bottom: 1px solid #002000;
+  }
+  .log-line:last-child { border-bottom: none; }
+  .log-line::before { content: '> '; color: #00ff41; }
+
+  /* ── CONNECTOR ── */
+  .connector {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(to bottom, #003b00, #001800);
+    position: relative;
+    overflow: hidden;
+  }
+  .connector.active-flow {
+    background: linear-gradient(to bottom, #00ff41, #003b00);
+    box-shadow: 0 0 6px #00ff4140;
+  }
+  /* Animated pulse on active connector */
+  .connector.active-flow::after {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: linear-gradient(to bottom, transparent, #00ff41, transparent);
+    animation: flow 1.2s infinite;
+  }
+  @keyframes flow { to { top: 200%; } }
+
+  /* ── NETWORK (stakeholder sim) ── */
+  .network-container {
+    width: 100%;
+    background: #010a01;
+    border: 1px solid #00ff4130;
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    min-height: 340px;
+  }
+  .network-title {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #00ff41;
+    text-shadow: 0 0 8px #00ff4180;
+    margin-bottom: 20px;
+  }
+  .network-svg { width: 100%; height: 280px; }
+
+  /* ── STYLE VARIANTS selector ── */
+  .variants {
+    display: flex;
+    gap: 12px;
+    margin: 24px auto;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .variant-card {
+    border: 2px solid #003b00;
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    background: #020d02;
+    width: 200px;
+    transition: all 0.2s;
+  }
+  .variant-card:hover, .variant-card.selected { border-color: #00ff41; box-shadow: 0 0 12px #00ff4120; }
+  .variant-label { font-size: 11px; letter-spacing: 1px; margin-bottom: 6px; color: #00ff41; }
+  .variant-desc { font-size: 10px; color: #4a8a4a; }
+  .swatch { height: 8px; border-radius: 2px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">SEEWEES / OPS</div>
+  <button class="disrupt-btn active">📈 DEMAND SPIKE</button>
+  <button class="disrupt-btn">🚗 DRIVER SHORTAGE</button>
+  <button class="disrupt-btn">🏭 WAREHOUSE</button>
+  <button class="disrupt-btn">🌩️ WEATHER</button>
+  <button class="run-btn">[ EXECUTE ]</button>
+</div>
+
+<!-- MAIN PIPELINE -->
+<div class="main">
+
+  <div style="font-size:10px;color:#2a5a2a;letter-spacing:2px;margin-bottom:30px;align-self:flex-start">
+    PIPELINE STATUS &nbsp;·&nbsp; DISRUPTION: DEMAND SPIKE ×1.2 &nbsp;·&nbsp; RUNNING...
+  </div>
+
+  <!-- 1. PDF Context — DONE -->
+  <div class="pipeline-node">
+    <div class="node-box done">
+      <span class="node-icon">📄</span>
+      <div>
+        <div class="node-label">PDF CONTEXT</div>
+        <div class="node-desc">Extract business rules from playbook</div>
+      </div>
+      <span class="node-check">✓ DONE</span>
+    </div>
+  </div>
+  <div class="connector done"></div>
+
+  <!-- 2. CSV Analysis — DONE -->
+  <div class="pipeline-node">
+    <div class="node-box done">
+      <span class="node-icon">📊</span>
+      <div>
+        <div class="node-label">CSV ANALYSIS</div>
+        <div class="node-desc">Augment shipment data · compute KPIs</div>
+      </div>
+      <span class="node-check">✓ DONE</span>
+    </div>
+  </div>
+  <div class="connector done"></div>
+
+  <!-- 3. Weather — DONE -->
+  <div class="pipeline-node">
+    <div class="node-box done">
+      <span class="node-icon">🌤️</span>
+      <div>
+        <div class="node-label">WEATHER RISK</div>
+        <div class="node-desc">Route weather risk per waypoint</div>
+      </div>
+      <span class="node-check">✓ DONE</span>
+    </div>
+  </div>
+  <div class="connector active-flow"></div>
+
+  <!-- 4. What-If — ACTIVE (expanded) -->
+  <div class="pipeline-node">
+    <div class="node-box active">
+      <span class="node-icon">⚡</span>
+      <div>
+        <div class="node-label">WHAT-IF SIMULATION</div>
+        <div class="node-desc">Apply disruption · recalculate scenario KPIs</div>
+      </div>
+    </div>
+    <div class="node-expand">
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">ON-TIME BASELINE</div>
+          <div class="kpi-value good">82%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">ON-TIME SCENARIO</div>
+          <div class="kpi-value bad">61%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">AT-RISK UNITS</div>
+          <div class="kpi-value warn">14</div>
+        </div>
+      </div>
+      <div class="log-line">demand_spike applied — multiplier: 1.2x</div>
+      <div class="log-line">87 shipments affected · cold chain: 45 flagged</div>
+      <div class="log-line">scenario KPIs recalculated in 0.12s</div>
+    </div>
+  </div>
+  <div class="connector"></div>
+
+  <!-- 5. Stakeholder Sim — PENDING (network preview) -->
+  <div class="pipeline-node">
+    <div class="node-box" style="border-color:#003b00;color:#1a4a1a">
+      <span class="node-icon" style="color:#1a4a1a">👥</span>
+      <div>
+        <div class="node-label" style="color:#1a4a1a">STAKEHOLDER SIMULATION</div>
+        <div class="node-desc">6-persona agent storm · synthesis</div>
+      </div>
+    </div>
+  </div>
+  <div class="connector"></div>
+
+  <!-- 6. Planner -->
+  <div class="pipeline-node">
+    <div class="node-box">
+      <span class="node-icon">🗺️</span>
+      <div>
+        <div class="node-label">PLANNER</div>
+        <div class="node-desc">Generate dispatch plan</div>
+      </div>
+    </div>
+  </div>
+  <div class="connector"></div>
+
+  <!-- 7. Judge -->
+  <div class="pipeline-node">
+    <div class="node-box">
+      <span class="node-icon">⚖️</span>
+      <div>
+        <div class="node-label">JUDGE / AUDIT</div>
+        <div class="node-desc">Validate plan against playbook rules</div>
+      </div>
+    </div>
+  </div>
+  <div class="connector"></div>
+
+  <!-- 8. Report -->
+  <div class="pipeline-node">
+    <div class="node-box">
+      <span class="node-icon">📑</span>
+      <div>
+        <div class="node-label">EXECUTIVE REPORT</div>
+        <div class="node-desc">Generate HTML report</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEPARATOR -->
+  <div style="width:100%;border-top:1px solid #003b00;margin:40px 0 30px"></div>
+
+  <!-- STAKEHOLDER NETWORK (shown when that step runs) -->
+  <div style="font-size:10px;color:#2a5a2a;letter-spacing:2px;margin-bottom:16px;align-self:flex-start">
+    STAKEHOLDER SIM — NETWORK VIEW (when active)
+  </div>
+  <div class="network-container">
+    <div class="network-title">[ AGENT STORM — 6 PERSONAS ACTIVE ]</div>
+    <svg class="network-svg" viewBox="0 0 560 260">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Edges from each persona to synthesis (center = 280,130) -->
+      <line x1="80" y1="65"  x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+      <line x1="190" y1="30" x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+      <line x1="370" y1="30" x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+      <line x1="480" y1="65" x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+      <line x1="480" y1="195" x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+      <line x1="80" y1="195" x2="280" y2="130" stroke="#00ff41" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4"/>
+
+      <!-- Persona nodes -->
+      <!-- Hospital Admin -->
+      <circle cx="80" cy="65" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="80" y="60" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">🏥</text>
+      <text x="80" y="71" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">HOSPITAL</text>
+      <text x="80" y="81" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">ADMIN</text>
+
+      <!-- Dispatcher -->
+      <circle cx="190" cy="30" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="190" y="25" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">📡</text>
+      <text x="190" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">DISPATCH</text>
+      <text x="190" y="46" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">-ER</text>
+
+      <!-- CFO -->
+      <circle cx="370" cy="30" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="370" y="25" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">💰</text>
+      <text x="370" y="36" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">CFO</text>
+
+      <!-- Driver -->
+      <circle cx="480" cy="65" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="480" y="60" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">🚛</text>
+      <text x="480" y="71" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">DRIVER</text>
+
+      <!-- Compliance -->
+      <circle cx="480" cy="195" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="480" y="190" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">📋</text>
+      <text x="480" y="201" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">COMPLY</text>
+
+      <!-- Warehouse -->
+      <circle cx="80" cy="195" r="28" fill="#010a01" stroke="#00cc44" stroke-width="1.5" filter="url(#glow)"/>
+      <text x="80" y="190" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41">🏭</text>
+      <text x="80" y="201" text-anchor="middle" font-family="monospace" font-size="7" fill="#4aaa4a">WAREHOUSE</text>
+
+      <!-- Synthesis center node (diamond shape) -->
+      <polygon points="280,100 310,130 280,160 250,130" fill="#010a01" stroke="#00ff41" stroke-width="2" filter="url(#glow2)"/>
+      <text x="280" y="126" text-anchor="middle" font-family="monospace" font-size="8" fill="#00ff41" font-weight="bold">🔮</text>
+      <text x="280" y="138" text-anchor="middle" font-family="monospace" font-size="7" fill="#00ff41">SYNTH</text>
+    </svg>
+  </div>
+
+  <!-- COLOR VARIANT SELECTOR -->
+  <div style="width:100%;border-top:1px solid #003b00;margin:40px 0 20px"></div>
+  <div style="font-size:10px;color:#2a5a2a;letter-spacing:2px;margin-bottom:16px;align-self:flex-start">
+    ACCENT COLOR — WHICH FEELS RIGHT?
+  </div>
+
+  <div class="variants">
+    <div class="variant-card selected" onclick="this.classList.toggle('selected')">
+      <div class="swatch" style="background:linear-gradient(90deg,#00ff41,#00cc34)"></div>
+      <div class="variant-label">A — CLASSIC GREEN</div>
+      <div class="variant-desc">Pure Matrix #00ff41. Iconic, high contrast, unmistakable.</div>
+    </div>
+    <div class="variant-card" onclick="this.classList.toggle('selected')">
+      <div class="swatch" style="background:linear-gradient(90deg,#00e5ff,#0077cc)"></div>
+      <div class="variant-label">B — CYBER BLUE</div>
+      <div class="variant-desc">Electric blue. More "enterprise AI" than Matrix, still dark & sharp.</div>
+    </div>
+    <div class="variant-card" onclick="this.classList.toggle('selected')">
+      <div class="swatch" style="background:linear-gradient(90deg,#39ff14,#00aa00)"></div>
+      <div class="variant-label">C — PHOSPHOR GREEN</div>
+      <div class="variant-desc">Slightly warmer, like an old CRT terminal. Professional & retro.</div>
+    </div>
+  </div>
+
+  <p style="font-size:10px;color:#2a5a2a;margin-top:8px;letter-spacing:1px">
+    Tell me what you think in the terminal — accent color, layout tweaks, anything to change.
+  </p>
+
+</div>
+
+<script>
+// Simple toggle for variant cards
+document.querySelectorAll('.variant-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>
