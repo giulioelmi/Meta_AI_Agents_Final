@@ -424,3 +424,139 @@ def render_report_panel(state: Dict[str, Any]) -> str:
         f'<div style="font-size:12px;color:#6e6e73">Full executive report rendered below the pipeline.</div>'
         f'</div>'
     )
+
+
+# ── Panel dispatcher ───────────────────────────────────────────────────────────
+
+def _get_panel(node_key: str, state: Dict[str, Any]) -> str:
+    _renderers = {
+        "pdf_context":     render_pdf_context_panel,
+        "csv_analysis":    render_csv_analysis_panel,
+        "weather":         render_weather_panel,
+        "what_if":         render_what_if_panel,
+        "stakeholder_sim": render_stakeholder_panel,
+        "planner":         render_planner_panel,
+        "judge":           render_judge_panel,
+        "report":          render_report_panel,
+    }
+    fn = _renderers.get(node_key)
+    return fn(state) if fn else ""
+
+
+# ── Pipeline HTML builder ──────────────────────────────────────────────────────
+
+_DISRUPTION_LABEL: Dict[str, str] = {
+    "demand_spike":      "Demand Spike",
+    "driver_shortage":   "Driver Shortage",
+    "warehouse_closure": "Warehouse Closure",
+    "weather_event":     "Weather Event",
+}
+
+
+def build_pipeline_html(
+    completed: List[str],
+    active: Optional[str],
+    accumulated: Dict[str, Any],
+    disruption_type: str = "demand_spike",
+) -> str:
+    """Return a self-contained HTML document rendering the 8-step pipeline."""
+    connector = (
+        '<div style="width:2px;height:18px;background:#1d1d1f;margin:0 auto"></div>'
+    )
+    nodes_html = ""
+    for i, (key, title, subtitle) in enumerate(NODE_STEPS):
+        is_done   = key in completed
+        is_active = key == active
+
+        if is_active:
+            ind_bg, ind_fg = "#f5f5f7", "#0a0a0a"
+            ind_text       = str(i + 1)
+            border         = "#2a2a2e"
+            bg             = "#141414"
+            title_col      = "#f5f5f7"
+            sub_col        = "#6e6e73"
+            opacity        = "1"
+        elif is_done:
+            ind_bg, ind_fg = "#1c3a24", "#30d158"
+            ind_text       = "&#10003;"
+            border         = "#1d1d1f"
+            bg             = "#111"
+            title_col      = "#aeaeb2"
+            sub_col        = "#48484a"
+            opacity        = "1"
+        else:
+            ind_bg, ind_fg = "#1d1d1f", "#3a3a3c"
+            ind_text       = str(i + 1)
+            border         = "transparent"
+            bg             = "transparent"
+            title_col      = "#48484a"
+            sub_col        = "#3a3a3c"
+            opacity        = "0.4"
+
+        content = _get_panel(key, accumulated) if (is_done or is_active) else ""
+
+        node_html = (
+            f'<div id="step-{key}" style="'
+            f'width:100%;padding:18px 24px;border-radius:14px;'
+            f'border:1px solid {border};background:{bg};opacity:{opacity};'
+            f'transition:all 0.35s cubic-bezier(0.4,0,0.2,1)">'
+            f'<div style="display:flex;align-items:center;gap:18px">'
+            f'<div style="width:36px;height:36px;border-radius:50%;'
+            f'background:{ind_bg};color:{ind_fg};'
+            f'display:flex;align-items:center;justify-content:center;'
+            f'font-size:13px;font-weight:600;flex-shrink:0">{ind_text}</div>'
+            f'<div style="flex:1">'
+            f'<div style="font-size:15px;font-weight:500;color:{title_col}">{title}</div>'
+            f'<div style="font-size:12px;color:{sub_col};margin-top:3px">{subtitle}</div>'
+            f'</div></div>{content}</div>'
+        )
+        nodes_html += node_html
+        if i < len(NODE_STEPS) - 1:
+            nodes_html += connector
+
+    dlabel   = _DISRUPTION_LABEL.get(disruption_type, disruption_type)
+    n_done   = len(completed)
+    n_total  = len(NODE_STEPS)
+
+    if active:
+        status_text = f"Running &mdash; {dlabel}"
+        dot_style   = (
+            "width:7px;height:7px;border-radius:50%;background:#30d158;"
+            "box-shadow:0 0 6px #30d15880;animation:pulse 2s infinite;flex-shrink:0"
+        )
+    else:
+        status_text = "Complete" if completed else "Ready"
+        dot_style   = "width:7px;height:7px;border-radius:50%;background:#3a3a3c;flex-shrink:0"
+
+    scroll_id = f"step-{active}" if active else (f"step-{completed[-1]}" if completed else "")
+    scroll_js = (
+        f'<script>window.addEventListener("load",function(){{'
+        f'var el=document.getElementById("{scroll_id}");'
+        f'if(el)el.scrollIntoView({{behavior:"smooth",block:"center"}});}});</script>'
+    ) if scroll_id else ""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ background: #0a0a0a;
+       font-family: -apple-system,"SF Pro Display","Helvetica Neue",sans-serif;
+       padding: 12px 0 48px; }}
+@keyframes pulse {{ 0%,100%{{opacity:1}} 50%{{opacity:0.35}} }}
+</style>
+</head>
+<body>
+<div style="max-width:660px;margin:0 auto;padding:0 20px">
+  <div style="margin-bottom:14px;padding:10px 16px;background:#111;border-radius:10px;
+              border:1px solid #1d1d1f;display:flex;align-items:center;gap:10px">
+    <div style="{dot_style}"></div>
+    <span style="font-size:12px;color:#aeaeb2;font-weight:500">{status_text}</span>
+    <span style="margin-left:auto;font-size:11px;color:#48484a">{n_done}/{n_total} steps</span>
+  </div>
+  {nodes_html}
+</div>
+{scroll_js}
+</body>
+</html>"""
