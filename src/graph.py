@@ -26,11 +26,26 @@ class AppState(TypedDict, total=False):
     csv_kpis: Dict[str, Any]
     anomalies_md: str
     ops_insights: str
+    augmented_df_json: str          # augmented DataFrame serialized as JSON string
 
-    # In corridor mode we store a route-level dict in weather_risk; in fallback mode it's single-location risk dict.
     weather_risk: Dict[str, Any]
 
+    # What-if scenario
+    disruption_type: str            # "demand_spike" | "driver_shortage" | "warehouse_closure" | "weather_event"
+    disruption_params: Dict[str, Any]
+    scenario_kpis: Dict[str, Any]
+    what_if_summary: str
+
+    # Stakeholder simulation
+    stakeholder_reactions: Dict[str, str]   # persona_name -> reaction text
+    stakeholder_synthesis: str
+
+    # Planner + audit loop
     dispatch_plan: str
+    audit_verdict: str              # "pass" | "fail"
+    audit_violations: List[str]
+    audit_retries: int
+
     report_html: str
 
 
