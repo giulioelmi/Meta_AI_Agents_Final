@@ -17,15 +17,18 @@ This project transforms that prototype into a **robust multi-agent LangGraph sys
 - All shipments in `Incoming_shipment_03_06.csv` (86 shipments) are assumed to be active and unconfirmed unless flagged otherwise.
 - Hospital priority levels are inferred from shipment urgency flags and SLA windows in the Dispatch Playbook PDF; no external hospital ranking data is used.
 - Route waypoints (e.g., I-95 corridor checkpoints) are parsed from the PDF playbook and used as latitude/longitude inputs to the weather API.
+
 **Weather Risk**
 - Weather risk scores (0–3) are derived from Open-Meteo forecast data at parsed route waypoints.
 - A risk score of 2 triggers a warning in the plan; a score of 3 mandates escalation per the SeeWeeS Dispatch Playbook business rule: *"Must escalate if Risk Score is 3."*
 - Fallback coordinates (`WEATHER_LAT=40.7282`, `WEATHER_LON=-74.0776`) represent the Newark, NJ corridor hub when waypoints cannot be parsed from the PDF.
+
 **What-If Disruptions**
 - `demand_spike`: multiplies expected shipment volume by the provided `--multiplier` (default 1.2×).
 - `driver_shortage`: removes the specified `--shortage-pct` percentage of available drivers uniformly at random.
 - `warehouse_closure`: marks the specified `--location` warehouse as unavailable and re-routes affected shipments.
 - `weather_event`: injects a synthetic weather risk score of `--risk-score` onto all active routes.
+  
 **Data Availability**
 - No live ERP or TMS data is available; all inputs are static CSV and PDF files.
 - Stakeholder personas (Operations Manager, Compliance Officer, CFO) are simulated via LLM prompting rather than real human input.
