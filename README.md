@@ -5,7 +5,10 @@ This project implements a command-line LangGraph pipeline for the UCLA MSBA AI A
 ## Project Structure
 
 ```text
-data/                  Input PDF and CSV files
+data/
+  Incoming_shipment_03_06.csv       Raw shipment data (86 shipments)
+  SeeWeeS Specialty Dispatch Playbook.pdf
+  About SeeWeeS Specialty distribution.pdf
 src/main.py            CLI entry point
 src/graph.py           LangGraph workflow
 src/agents.py          LLM agent wrappers
@@ -67,11 +70,19 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and set:
+Edit `.env` and set your API key:
 
 ```text
 OPENAI_API_KEY="your_openai_api_key_here"
 ```
+
+Optional overrides (all have sensible defaults):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `WEATHER_TZ` | `America/New_York` | Timezone for Open-Meteo forecasts |
+| `WEATHER_LAT` | `40.7282` | Fallback latitude if PDF waypoints cannot be parsed |
+| `WEATHER_LON` | `-74.0776` | Fallback longitude |
 
 ## Run
 
