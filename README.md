@@ -66,6 +66,8 @@ Generated files such as `dispatch_report_*.pdf`, `chroma_db/`, `__pycache__/`, a
 
 ## Agentic Flow
 
+The system is a directed LangGraph workflow with a **cyclic audit loop** — a deliberate departure from linear pipelines. The cycle between Judge and Revise ensures the final dispatch plan is grounded in the business rules extracted from the PDF before any output reaches the report layer.
+
 ```mermaid
 flowchart TD
     Start([CLI run with disruption scenario])
