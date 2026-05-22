@@ -188,6 +188,8 @@ The static scenario data lives in `lib/scenarios.ts` and reflects these teammate
 
 If the Python pipeline outputs new KPI results later, update `lib/scenarios.ts` and rebuild the app.
 
-## Notes
-
-Do not commit `.env` or API keys. The PDF vector index in `chroma_db/` is a local cache and can be rebuilt by rerunning the app.
+## Security
+ 
+- Never commit `.env` or any API keys — the `.gitignore` excludes `.env` by default.
+- The `chroma_db/` vector index is a local cache; it can be safely deleted and will be rebuilt on the next run.
+- The `.env.example` file contains only placeholder values and is safe to commit.
