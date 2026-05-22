@@ -1,6 +1,19 @@
-# MSBA AI Agents Demo
-
-This project implements a command-line LangGraph pipeline for the UCLA MSBA AI Agents Project Challenge. It turns the SeeWeeS specialty medicine dispatch prototype into a multi-agent workflow with PDF-grounded business rules, shipment KPI analysis, weather risk, what-if simulation, stakeholder review, a planner, and an audit loop before report generation.
+# SeeWeeS Multi-Agent Ops Reporting System
+### UCLA MSBA AI Agents Project Challenge 2026
+ 
+---
+ 
+## Executive Summary
+ 
+SeeWeeS is a specialty medicine distributor responsible for time-critical deliveries across hospital networks in the northeastern U.S. The core operational challenge: dispatch decisions must account for shipment data, contractual SLAs, real-time weather risk, and resource constraints — all simultaneously. The original prototype handled this in a single linear pass, with no ability to handle disruptions, validate its own output, or simulate what-if scenarios.
+ 
+This project transforms that prototype into a **robust multi-agent LangGraph system** targeting two key enhancements from the project brief:
+ 
+- **Enhancement #1 — Self-Correction & Quality Assurance:** An Audit Loop where a Judge Agent reviews the Planner's dispatch plan against PDF-extracted business rules and cycles back for revision before any report is finalized.
+- **Enhancement #2 — What-If Scenario Simulation:** A What-If Agent that applies operational disruptions (demand spikes, driver shortages, warehouse closures, weather events) and computes scenario-specific KPI deltas and contingency recommendations.
+**Primary stakeholder:** SeeWeeS Operations Leadership (VP of Logistics / Dispatch Managers) who need fast, grounded, decision-ready reports when disruptions occur.
+ 
+---
 
 ## Project Structure
 
