@@ -1,8 +1,6 @@
 # SeeWeeS Multi-Agent Ops Reporting System
 ### UCLA MSBA AI Agents Project Challenge 2026
  
----
- 
 ## Executive Summary
  
 SeeWeeS is a specialty medicine distributor responsible for time-critical deliveries across hospital networks in the northeastern U.S. The core operational challenge: dispatch decisions must account for shipment data, contractual SLAs, real-time weather risk, and resource constraints — all simultaneously. The original prototype handled this in a single linear pass, with no ability to handle disruptions, validate its own output, or simulate what-if scenarios.
@@ -13,8 +11,6 @@ This project transforms that prototype into a **robust multi-agent LangGraph sys
 - **Enhancement #2 — What-If Scenario Simulation:** A What-If Agent that applies operational disruptions (demand spikes, driver shortages, warehouse closures, weather events) and computes scenario-specific KPI deltas and contingency recommendations.
 **Primary stakeholder:** SeeWeeS Operations Leadership (VP of Logistics / Dispatch Managers) who need fast, grounded, decision-ready reports when disruptions occur.
  
----
-
 ## Project Structure
 
 ```text
